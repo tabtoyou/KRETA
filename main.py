@@ -8,6 +8,7 @@ from src.utils import (
 )
 from src.api_client import get_model_response
 import json
+import argparse
 import pandas as pd
 from PIL import Image
 import io
@@ -95,7 +96,7 @@ class TVQAGenerator:
             'system2': aggregate_votes(evaluations['system2'], QA_EVALUATION['system1']['num_to_select'])
         }
 
-    def save_final_qa_dataset(self, evaluated_qa, qa_candidates, image_path, image_caption):
+    def save_final_qa_dataset(self, evaluated_qa, qa_candidates, image_path, image_caption, output_dir):
         """최종 QA 데이터셋을 parquet로 저장"""
         final_data = []
         
@@ -123,13 +124,13 @@ class TVQAGenerator:
         # DataFrame 생성 및 parquet 저장
         if final_data:
             df = pd.DataFrame(final_data)
-            output_path = os.path.join(os.path.dirname(image_path), 'qa_dataset.parquet')
+            output_path = os.path.join(output_dir, 'qa_dataset.parquet')
             df.to_parquet(output_path, compression='gzip')
             return True
         
         return False
 
-    def generate_qa_from_image_directory(self, dir_path):
+    def generate_qa_from_image_directory(self, dir_path, output_dir):
         """디렉토리 내 이미지들을 필터링하고 QA 데이터셋을 생성"""
         filtered_results = filter_images(dir_path, self.ocr_model)
         
@@ -145,11 +146,18 @@ class TVQAGenerator:
                 evaluated_qa, 
                 qa_candidates, 
                 item['image_path'],
-                image_caption
+                image_caption,
+                output_dir
             )
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='TVQA Generator')
+    parser.add_argument('-d', '--input_directory', type=str, required=False, default='./data/images')
+    parser.add_argument('-r', '--output_directory', type=str, required=False, default='./results')
+    args = parser.parse_args()
+
     generator = TVQAGenerator()
-    input_directory = "/Users/taebaek/Desktop/AttentionX/VLM/K-TVQA/data/document/chart"
+    input_directory = args.input_directory
+    output_directory = args.output_directory
     
-    generator.generate_qa_from_image_directory(input_directory)
+    generator.generate_qa_from_image_directory(input_directory, output_directory)

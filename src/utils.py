@@ -73,7 +73,7 @@ def filter_images(dir_path, ocr_model):
             print(f"디렉토리를 찾을 수 없습니다: {dir_path}")
             return []
 
-        new_dir_path = dir_path + '_filtered'
+        new_dir_path = os.path.join(os.path.dirname(dir_path), 'target_images')
         if not os.path.exists(new_dir_path):
             os.makedirs(new_dir_path)
 

@@ -43,11 +43,12 @@ def check_letters_and_extract_text(image_path, ocr_model):
             
         extracted_texts = []
         current_line_texts = []
+        # 인식된 텍스트의 평균 높이를 계산하여 줄 바꿈 기준으로 사용
         line_height = sum(text['box'][2][1] - text['box'][0][1] for text in valid_texts) / len(valid_texts)
-        
         current_line_y = valid_texts[0]['center_y']
         
         for text_info in valid_texts:
+            # 텍스트 높이가 평균 높이의 절반보다 크면 새로운 라인으로 간주
             if abs(text_info['center_y'] - current_line_y) > line_height/2:
                 extracted_texts.append("".join(current_line_texts))
                 extracted_texts.append("\n")
@@ -60,7 +61,6 @@ def check_letters_and_extract_text(image_path, ocr_model):
             extracted_texts.append("".join(current_line_texts))
         
         return True, "".join(extracted_texts)
-        
     except Exception as e:
         print(f"OCR 처리 중 오류 발생: {image_path}")
         print(f"오류 내용: {str(e)}")
@@ -105,8 +105,7 @@ def filter_images(dir_path, ocr_model):
                 continue
         
         print(f"필터링된 이미지가 저장된 경로: {new_dir_path}")
-        return filtered_results
-    
+        return filtered_results    
     except Exception as e:
         print(f"처리 중 오류 발생")
         print(f"오류 내용: {str(e)}")

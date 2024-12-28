@@ -1,5 +1,4 @@
 import os
-from openai import OpenAI
 from paddleocr import PaddleOCR
 from src.utils import (
     filter_images, 
@@ -16,7 +15,6 @@ from src.config import CAPTION_GENERATION, QA_GENERATION, QA_EVALUATION
 from src.prompts import CAPTION_PROMPT, format_qa_generation_prompt, format_qa_evaluation_prompt
 from typing import Dict, List, Optional
 
-
 class TVQAGenerator:
     def __init__(self):
         self.ocr_model = PaddleOCR(
@@ -30,7 +28,6 @@ class TVQAGenerator:
 
     def generate_image_caption(self, image_path):
         """이미지 기반 상세 캡션 생성"""
-        
         captions = [
             get_model_response(model_name, CAPTION_PROMPT, image_path)
             for model_name in CAPTION_GENERATION['models']

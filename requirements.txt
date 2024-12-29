@@ -1,6 +1,7 @@
 openai
 anthropic
 google-api-python-client
+google-generativeai
 paddleocr==2.9.1
 pandas
 pillow==10.4.0

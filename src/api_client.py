@@ -73,129 +73,92 @@ def get_model_config(model_name):
         raise ValueError(f"지원하지 않는 모델입니다: {model_name}")
     return AVAILABLE_MODELS[model_name]
 
-def generate_gpt_vision_response(image_path, prompt, model_name="gpt-4o-mini"):
-    """OpenAI Vision API를 사용하여 이미지 기반 응답 생성"""
+def generate_vision_response(provider, image_path, prompt, model_name):
+    """OpenAI, Gemini, Anthropic Vision API를 사용하여 이미지 기반 응답 생성"""
     try:
         model_config = get_model_config(model_name)
         with open(image_path, "rb") as image_file:
             base64_image = base64.b64encode(image_file.read()).decode('utf-8')
-            
+            if provider == 'openai':
+                response = api_clients.get_client('openai').chat.completions.create(
+                    model=model_config['name'],
+                    messages=[{
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}",
+                                }
+                            }
+                        ]
+                    }],
+                    max_tokens=model_config.get('max_tokens', 1000),
+                )
+                return response.choices[0].message.content
+            elif provider == 'google':
+                model = api_clients.get_client('google').GenerativeModel(model_name=model_config['name'])
+                response = model.generate_content([
+                    {
+                        'mime_type': 'image/jpeg',
+                        'data': base64_image
+                    },
+                    prompt
+                ])
+                return response.text
+            elif provider == 'anthropic':
+                message = api_clients.get_client('anthropic').messages.create(
+                    model=model_config['name'],
+                    max_tokens=model_config.get('max_tokens', 1000),
+                    messages=[{
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/jpeg",
+                                    "data": base64_image
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": prompt
+                            }
+                        ]
+                    }]
+                )
+                return message.content[0].text
+    except Exception as e:
+        print(f"{provider} Vision API 응답 생성 중 오류 발생: {e}")
+        return None
+    
+def generate_response(provider, prompt, model_name=None):
+    """OpenAI, Gemini, Anthropic API를 사용하여 텍스트 기반 응답 생성"""
+    try:
+        model_config = get_model_config(model_name)
+        if provider == 'openai':
             response = api_clients.get_client('openai').chat.completions.create(
                 model=model_config['name'],
-                messages=[{
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}",
-                            }
-                        }
-                    ]
-                }],
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
                 max_tokens=model_config.get('max_tokens', 1000),
             )
             return response.choices[0].message.content
+        elif provider == 'google':
+            model = api_clients.get_client('google').GenerativeModel(model_name=model_config['name'])
+            response = model.generate_content(prompt)
+            return response.text
+        elif provider == 'anthropic':
+            message = api_clients.get_client('anthropic').messages.create(
+                model=model_config['name'],
+                max_tokens=model_config.get('max_tokens', 1000),
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return message.content[0].text
     except Exception as e:
-        print(f"이미지 캡션 생성 중 오류 발생: {e}")
-        return None
-
-def generate_gpt_response(prompt, model_name="gpt-4o-mini"):
-    """OpenAI API를 사용하여 텍스트 기반 응답 생성"""
-    try:
-        model_config = get_model_config(model_name)
-        response = api_clients.get_client('openai').chat.completions.create(
-            model=model_config['name'],
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=model_config.get('max_tokens', 1000),
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        print(f"GPT 응답 생성 중 오류 발생: {e}")
-        return None
-
-def generate_gemini_vision_response(image_path, prompt, model_name="gemini-2.0-flash-exp"):
-    """Gemini Vision API를 사용하여 이미지 기반 응답 생성"""
-    try:
-        model_config = get_model_config(model_name)
-        model = api_clients.get_client('google').GenerativeModel(model_name=model_config['name'])
-        
-        with open(image_path, "rb") as image_file:
-            image_data = image_file.read()
-            
-        response = model.generate_content([
-            {
-                'mime_type': 'image/jpeg',
-                'data': base64.b64encode(image_data).decode('utf-8')
-            },
-            prompt
-        ])
-        
-        return response.text
-    except Exception as e:
-        print(f"Gemini Vision 응답 생성 중 오류 발생: {e}")
-        return None
-
-def generate_gemini_response(prompt, model_name="gemini-2.0-flash-exp"):
-    """Gemini API를 사용하여 텍스트 기반 응답 생성"""
-    try:
-        model_config = get_model_config(model_name)
-        model = api_clients.get_client('google').GenerativeModel(model_name=model_config['name'])
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        print(f"Gemini 응답 생성 중 오류 발생: {e}")
-        return None
-
-def generate_sonnet_vision_response(image_path, prompt, model_name="claude-3-5-sonnet-latest"):
-    """Claude Sonnet Vision API를 사용하여 이미지 기반 응답 생성"""
-    try:
-        model_config = get_model_config(model_name)
-        
-        with open(image_path, "rb") as image_file:
-            image_data = image_file.read()
-            
-        message = api_clients.get_client('anthropic').messages.create(
-            model=model_config['name'],
-            max_tokens=model_config.get('max_tokens', 1000),
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "image/jpeg",
-                            "data": base64.b64encode(image_data).decode('utf-8')
-                        }
-                    },
-                    {
-                        "type": "text",
-                        "text": prompt
-                    }
-                ]
-            }]
-        )
-        
-        return message.content[0].text
-    except Exception as e:
-        print(f"Claude Sonnet Vision 응답 생성 중 오류 발생: {e}")
-        return None
-
-def generate_sonnet_response(prompt, model_name="claude-3-5-sonnet-latest"):
-    """Claude Sonnet API를 사용하여 텍스트 기반 응답 생성"""
-    try:
-        model_config = get_model_config(model_name)
-        message = api_clients.get_client('anthropic').messages.create(
-            model=model_config['name'],
-            max_tokens=model_config.get('max_tokens', 1000),
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return message.content[0].text
-    except Exception as e:
-        print(f"Claude Sonnet 응답 생성 중 오류 발생: {e}")
+        print(f"{provider} API 응답 생성 중 오류 발생: {e}")
         return None
 
 def get_model_response(model_name: str, prompt: str, image_path: str = None) -> Optional[str]:
@@ -215,21 +178,12 @@ def get_model_response(model_name: str, prompt: str, image_path: str = None) -> 
         
         # 이미지가 포함된 요청인 경우
         if image_path:
-            if provider == 'openai':
-                return generate_gpt_vision_response(image_path, prompt, model_name)
-            elif provider == 'google':
-                return generate_gemini_vision_response(image_path, prompt, model_name)
-            elif provider == 'anthropic':
-                return generate_sonnet_vision_response(image_path, prompt, model_name)
+            if provider in ['openai', 'google', 'anthropic']:
+                return generate_vision_response(provider, image_path, prompt, model_name)
         # 텍스트만 있는 요청인 경우
         else:
-            if provider == 'openai':
-                return generate_gpt_response(prompt, model_name)
-            elif provider == 'google':
-                return generate_gemini_response(prompt, model_name)
-            elif provider == 'anthropic':
-                return generate_sonnet_response(prompt, model_name)
-                
+            if provider in ['openai', 'google', 'anthropic']:
+                return generate_response(provider, prompt, model_name)
         return None
         
     except Exception as e:

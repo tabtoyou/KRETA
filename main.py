@@ -25,6 +25,7 @@ class TVQAGenerator:
             rec=True,
             show_log=False
         )
+        self.collected_data = []
 
     def generate_image_caption(self, image_path):
         """이미지 기반 상세 캡션 생성"""
@@ -94,9 +95,7 @@ class TVQAGenerator:
         }
 
     def save_final_qa_dataset(self, evaluated_qa, qa_candidates, image_path, image_caption, output_dir):
-        """최종 QA 데이터셋을 parquet로 저장"""
-        final_data = []
-        
+        """QA 데이터를 수집"""
         # 이미지를 바이트로 변환
         with Image.open(image_path) as img:
             img_byte_arr = io.BytesIO()
@@ -110,26 +109,23 @@ class TVQAGenerator:
                                  [idx - 1 for idx in evaluated_qa[system_type]]
                 selected_qa_list = [qa_candidates[system_type]['qa_list'][idx] for idx in selected_indices]
                 
-                final_data.append({
+                self.collected_data.append({
                     'image': img_byte_arr,
                     'detailed_caption': image_caption,
                     'candidates': qa_candidates[system_type]['qa_list'],
                     'selected_qa': selected_qa_list,
-                    'system': int(system_type[-1])
+                    'system': int(system_type[-1]),
+                    'image_path': image_path  # 이미지 경로도 저장
                 })
         
-        # DataFrame 생성 및 parquet 저장
-        if final_data:
-            df = pd.DataFrame(final_data)
-            output_path = os.path.join(output_dir, 'qa_dataset.parquet')
-            df.to_parquet(output_path, compression='gzip')
-            return True
-        
-        return False
+        return True
 
     def generate_qa_from_image_directory(self, dir_path, output_dir):
         """디렉토리 내 이미지들을 필터링하고 QA 데이터셋을 생성"""
         filtered_results = filter_images(dir_path, self.ocr_model)
+        
+        # 출력 디렉토리가 없으면 생성
+        os.makedirs(output_dir, exist_ok=True)
         
         for item in filtered_results:
             image_caption = self.generate_image_caption(item['image_path'])
@@ -146,6 +142,13 @@ class TVQAGenerator:
                 image_caption,
                 output_dir
             )
+
+        # 모든 이미지 처리가 끝난 후 한 번에 저장
+        if self.collected_data:
+            df = pd.DataFrame(self.collected_data)
+            output_path = os.path.join(output_dir, 'qa_dataset.parquet')
+            df.to_parquet(output_path, compression='gzip')
+            print(f"총 {len(self.collected_data)}개의 데이터가 저장되었습니다.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='TVQA Generator')

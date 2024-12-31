@@ -12,7 +12,7 @@ import pandas as pd
 from PIL import Image
 import io
 from src.config import CAPTION_GENERATION, QA_GENERATION, QA_EVALUATION
-from src.prompts import CAPTION_PROMPT, format_qa_generation_prompt, format_qa_evaluation_prompt
+from src.prompts import CAPTION_PROMPT, format_qa_generation_prompt, format_qa_evaluation_prompt, SIMILAR_OPTIONS_PROMPT
 from typing import Dict, List, Optional
 
 class TVQAGenerator:
@@ -69,8 +69,7 @@ class TVQAGenerator:
                 
         return qa_candidates
 
-    def multi_agent_evaluation(self, qa_candidates: Dict, image_path: str) -> Dict[str, Optional[int]]:
-        """다중 에이전트 평가"""
+    def multi_model_evaluation(self, qa_candidates: Dict, image_path: str) -> Dict[str, Optional[int]]:
         evaluations = {
             'system1': {},
             'system2': {}
@@ -127,6 +126,30 @@ class TVQAGenerator:
         
         return False
 
+    def generate_options_and_type(self, qa_candidates: Dict, evaluated_qa: Dict, image_path: str) -> Dict:
+        """선택된 QA에 대해 유사한 오답 옵션들을 생성"""
+        for system_type in ['system1', 'system2']:
+            if evaluated_qa[system_type] is not None:
+                selected_indices = [evaluated_qa[system_type] - 1] if isinstance(evaluated_qa[system_type], int) else \
+                                 [idx - 1 for idx in evaluated_qa[system_type]]
+                
+                for idx in selected_indices:
+                    qa = qa_candidates[system_type]['qa_list'][idx]
+                    prompt = SIMILAR_OPTIONS_PROMPT.format(
+                        question=qa['question'],
+                        correct_answer=qa['answer']
+                    )
+                    
+                    response = get_model_response(QA_EVALUATION[system_type]['models'][0], prompt, image_path)
+                    try:
+                        qa['options'] = json.loads(response.replace('```json','').replace('```',''))['options']
+                    except (json.JSONDecodeError, KeyError) as e:
+                        print(f"옵션 생성 중 오류 발생: {str(e)}")
+                        qa['options'] = []  # 오류 발생 시 정답만 포함
+                    print("qa['options']: ", qa['options'])
+        
+        return qa_candidates
+
     def generate_qa_from_image_directory(self, dir_path, output_dir):
         """디렉토리 내 이미지들을 필터링하고 QA 데이터셋을 생성"""
         filtered_results = filter_images(dir_path, self.ocr_model)
@@ -139,6 +162,14 @@ class TVQAGenerator:
             evaluated_qa = self.multi_agent_evaluation(qa_candidates, item['image_path'])
             print("evaluated_qa: ", evaluated_qa)
             
+            # 선택된 QA에 대해 유사 옵션 생성
+            qa_candidates = self.generate_options_and_type(
+                qa_candidates,
+                evaluated_qa,
+                item['image_path']
+            )
+            
+            # 최종 데이터셋 저장
             self.save_final_qa_dataset(
                 evaluated_qa, 
                 qa_candidates, 

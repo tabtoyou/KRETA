@@ -158,6 +158,40 @@ SYSTEM2_EVAL_TEMPLATE = """이미지와 그에 기반한 추론형 질의응답�
 {qa_candidates}
 """
 
+# 유사한 옵션 생성 프롬프트
+OPTIONS_AND_TYPE_PROMPT = """이미지에 대한 <질문>과 <정답>을 참고하여 아래 작업들을 수행해주세요:
+
+1. 유사한 오답 옵션 생성
+- 정답과 유사하지만 정답이 아닌 3개의 옵션을 생성
+- 형태나 주제가 기존 정답과 비슷해 구별하기 어려운 Hard Negatives로 작성
+- 실제 정답과 혼동될 수 있도록 설계
+
+2. 이미지 타입 분류
+다음 중 하나를 선택: ["document", "scene", "product", "advertisement", "receipt", "form"]
+- document: 공문서, 계약서 등 공식 문서
+- scene: 거리, 간판, 표지판 등이 포함된 일상적인 장면
+- product: 제품 정보, 패키지 등
+- advertisement: 광고, 홍보물
+- receipt: 영수증, 거래 명세서
+- form: 양식, 신청서 등
+
+3. 서브 카테고리 분류
+이미지의 세부 용도나 목적을 나타내는 구체적인 카테고리를 한글로 작성 (예: "상품 설명서", "도로 안내판", "식당 메뉴판" 등)
+
+<질문>
+{question}
+
+<정답>
+{correct_answer}
+
+아래와 같은 JSON 형식으로 출력해 주세요:
+{{
+    "options": ["유사 옵션 1", "유사 옵션 2", "유사 옵션 3"],
+    "img_type": "이미지 타입",
+    "sub_category": "서브 카테고리"
+}}
+"""
+
 def format_qa_generation_prompt(system_type: str, image_caption: str, num_questions: int) -> str:
     """QA 생성 프롬프트 포맷팅"""
     template = SYSTEM1_QA_TEMPLATE if system_type == 'system1' else SYSTEM2_QA_TEMPLATE

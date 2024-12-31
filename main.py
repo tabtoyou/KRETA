@@ -131,6 +131,9 @@ class TVQAGenerator:
         """디렉토리 내 이미지들을 필터링하고 QA 데이터셋을 생성"""
         filtered_results = filter_images(dir_path, self.ocr_model)
         
+        # 출력 디렉토리가 없으면 생성
+        os.makedirs(output_dir, exist_ok=True)
+        
         for item in filtered_results:
             image_caption = self.generate_image_caption(item['image_path'])
             print("image_caption: ", image_caption)

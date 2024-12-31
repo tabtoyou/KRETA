@@ -117,7 +117,7 @@ def run_app(dataset_path: str):
         temp_answer = st.text_area("Answer", value=current_candidate["answer"])
         temp_reasoning = st.text_area("Reasoning", value=current_candidate.get("reasoning", ""))
 
-        if st.button("Update thisQA"):
+        if st.button("Update this QA"):
             current_candidate["question"] = temp_question
             current_candidate["answer"] = temp_answer
             current_candidate["reasoning"] = temp_reasoning

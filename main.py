@@ -93,7 +93,7 @@ class TVQAGenerator:
             'system2': aggregate_votes(evaluations['system2'], QA_EVALUATION['system1']['num_to_select'])
         }
 
-    def save_final_qa_dataset(self, evaluated_qa, qa_candidates, image_path, image_caption, output_dir):
+    def save_final_qa_dataset(self, evaluated_qa, qa_candidates, image_path, image_caption):
         """QA 데이터를 수집"""
         # 이미지를 바이트로 변환
         with Image.open(image_path) as img:
@@ -117,7 +117,6 @@ class TVQAGenerator:
                     'options': qa_candidates[system_type]['options'],
                     'img_type': qa_candidates[system_type]['img_type'],
                     'domain': qa_candidates[system_type]['domain'],
-                    'image_path': image_path  # 이미지 경로도 저장
                 })
         
         return True
@@ -171,27 +170,8 @@ class TVQAGenerator:
         os.makedirs(output_dir, exist_ok=True)
         
         for item in filtered_results:
-            # image_caption = self.generate_image_caption(item['image_path'])
-            # print("image_caption: ", image_caption)
-            image_caption = """**1. 이미지 내 텍스트 정보**
-
-*   **제목:** 한국의 국가별 반도체 수출 비중
-*   **(자료=2020년 기준 무역협회)**
-*   **필리핀 3.0**
-*   **대만 5.2**
-*   **기타 10.6**
-*   **미국 7.7**
-*   **중국 41.1%**
-*   **단위: %**
-*   **베트남 11.6**
-*   **홍콩 20.8**
-
-**2. 텍스트 외의 시각적 요소들**
-
-*   **전반적인 구성:** 파이 차트 형태로, 원형 그래프를 통해 국가별 반도체 수출 비중을 시각적으로 나타냅니다. 배경은 단색의 연한 회색입니다.
-*   **주요 사물:**
-    *   **파이 차트:** 여러 색상으로 구분된 원형 그래프이며, 각 영역은 특정 국가의 반도체 수출 비중을 나타냅니다. 각 영역 옆에는 해당 국가명과 수치가 표시되어 있습니다.
-    *   **반도체 칩:** 이미지 하단 우측에 반도체 칩 그림이 있습니다. 칩은 흰색과 회색의 선으로 단순하게 표현되어 있으며, 그 위에 작은 태극기 깃발이 꽂혀 있습니다."""
+            image_caption = self.generate_image_caption(item['image_path'])
+            print("image_caption: ", image_caption)
 
             qa_candidates = self.generate_qa_candidates(image_caption)
             evaluated_qa = self.multi_models_evaluation(qa_candidates, item['image_path'])
@@ -209,8 +189,7 @@ class TVQAGenerator:
                 evaluated_qa, 
                 qa_candidates, 
                 item['image_path'],
-                image_caption,
-                output_dir
+                image_caption
             )
 
         # 모든 이미지 처리가 끝난 후 한 번에 저장

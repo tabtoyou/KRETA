@@ -12,7 +12,7 @@ import pandas as pd
 from PIL import Image
 import io
 from src.config import CAPTION_GENERATION, QA_GENERATION, QA_EVALUATION
-from src.prompts import CAPTION_PROMPT, format_qa_generation_prompt, format_qa_evaluation_prompt
+from src.prompts import CAPTION_PROMPT, format_qa_generation_prompt, format_qa_evaluation_prompt, HARD_NEGATIVE_OPTIONS_PROMPT, DOMAIN_AND_TYPE_PROMPT
 from typing import Dict, List, Optional
 
 class TVQAGenerator:
@@ -70,8 +70,7 @@ class TVQAGenerator:
                 
         return qa_candidates
 
-    def multi_agent_evaluation(self, qa_candidates: Dict, image_path: str) -> Dict[str, Optional[int]]:
-        """다중 에이전트 평가"""
+    def multi_models_evaluation(self, qa_candidates: Dict, image_path: str) -> Dict[str, Optional[int]]:
         evaluations = {
             'system1': {},
             'system2': {}
@@ -115,10 +114,54 @@ class TVQAGenerator:
                     'candidates': qa_candidates[system_type]['qa_list'],
                     'selected_qa': selected_qa_list,
                     'system': int(system_type[-1]),
+                    'options': qa_candidates[system_type]['options'],
+                    'img_type': qa_candidates[system_type]['img_type'],
+                    'domain': qa_candidates[system_type]['domain'],
                     'image_path': image_path  # 이미지 경로도 저장
                 })
         
         return True
+
+    def generate_options_and_type(self, qa_candidates: Dict, evaluated_qa: Dict, image_path: str) -> Dict:
+        """선택된 QA에 대해 유사한 오답 옵션들과 이미지 타입, 도메인 정보를 생성"""
+        # 이미지 타입과 도메인 정보 한 번만 생성
+        type_domain_response = get_model_response(QA_EVALUATION['system2']['models'][0], DOMAIN_AND_TYPE_PROMPT, image_path)
+        try:
+            parsed_type_domain = json.loads(type_domain_response.replace('```json','').replace('```',''))
+            img_type = parsed_type_domain.get('img_type', [""])
+            domain = parsed_type_domain.get('domain', [""])
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"타입/도메인 생성 중 오류 발생: {str(e)}")
+            img_type = [""]
+            domain = [""]
+
+        # qa_candidates의 기존 구조를 유지하면서 새로운 필드 추가
+        for system_type in ['system1', 'system2']:
+            qa_candidates[system_type].update({
+                'options': [""],
+                'img_type': img_type,  # 공통 이미지 타입 적용
+                'domain': domain      # 공통 도메인 적용
+            })
+            
+            if evaluated_qa[system_type] is not None:
+                selected_indices = [evaluated_qa[system_type] - 1] if isinstance(evaluated_qa[system_type], int) else \
+                                 [idx - 1 for idx in evaluated_qa[system_type]]
+                
+                for idx in selected_indices:
+                    qa = qa_candidates[system_type]['qa_list'][idx]
+                    prompt = HARD_NEGATIVE_OPTIONS_PROMPT.format(
+                        question=qa['question'],
+                        correct_answer=qa['answer']
+                    )
+                    
+                    response = get_model_response(QA_EVALUATION['system2']['models'][0], prompt, image_path)
+                    try:
+                        parsed_response = json.loads(response.replace('```json','').replace('```',''))
+                        qa_candidates[system_type]['options'] = parsed_response.get('options', [""])
+                    except (json.JSONDecodeError, KeyError) as e:
+                        print(f"옵션 생성 중 오류 발생: {str(e)}")
+        
+        return qa_candidates
 
     def generate_qa_from_image_directory(self, dir_path, output_dir):
         """디렉토리 내 이미지들을 필터링하고 QA 데이터셋을 생성"""
@@ -128,13 +171,40 @@ class TVQAGenerator:
         os.makedirs(output_dir, exist_ok=True)
         
         for item in filtered_results:
-            image_caption = self.generate_image_caption(item['image_path'])
-            print("image_caption: ", image_caption)
+            # image_caption = self.generate_image_caption(item['image_path'])
+            # print("image_caption: ", image_caption)
+            image_caption = """**1. 이미지 내 텍스트 정보**
+
+*   **제목:** 한국의 국가별 반도체 수출 비중
+*   **(자료=2020년 기준 무역협회)**
+*   **필리핀 3.0**
+*   **대만 5.2**
+*   **기타 10.6**
+*   **미국 7.7**
+*   **중국 41.1%**
+*   **단위: %**
+*   **베트남 11.6**
+*   **홍콩 20.8**
+
+**2. 텍스트 외의 시각적 요소들**
+
+*   **전반적인 구성:** 파이 차트 형태로, 원형 그래프를 통해 국가별 반도체 수출 비중을 시각적으로 나타냅니다. 배경은 단색의 연한 회색입니다.
+*   **주요 사물:**
+    *   **파이 차트:** 여러 색상으로 구분된 원형 그래프이며, 각 영역은 특정 국가의 반도체 수출 비중을 나타냅니다. 각 영역 옆에는 해당 국가명과 수치가 표시되어 있습니다.
+    *   **반도체 칩:** 이미지 하단 우측에 반도체 칩 그림이 있습니다. 칩은 흰색과 회색의 선으로 단순하게 표현되어 있으며, 그 위에 작은 태극기 깃발이 꽂혀 있습니다."""
 
             qa_candidates = self.generate_qa_candidates(image_caption)
-            evaluated_qa = self.multi_agent_evaluation(qa_candidates, item['image_path'])
+            evaluated_qa = self.multi_models_evaluation(qa_candidates, item['image_path'])
             print("evaluated_qa: ", evaluated_qa)
             
+            # 선택된 QA에 대해 유사 옵션 생성
+            qa_candidates = self.generate_options_and_type(
+                qa_candidates,
+                evaluated_qa,
+                item['image_path']
+            )
+            
+            # 최종 데이터셋 저장
             self.save_final_qa_dataset(
                 evaluated_qa, 
                 qa_candidates, 

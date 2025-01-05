@@ -131,7 +131,14 @@ class TVQAGenerator:
 
     def generate_options_and_type(self, qa_candidates: Dict, evaluated_qa: Dict, image_path: str) -> Dict:
         """선택된 QA에 대해 유사한 오답 옵션들과 이미지 타입, 도메인 정보를 생성"""
+        # qa_candidates의 기존 구조를 유지하면서 새로운 필드 추가
         for system_type in ['system1', 'system2']:
+            qa_candidates[system_type].update({
+                'options': [""],
+                'img_type': [""],
+                'domain': [""]
+            })
+            
             if evaluated_qa[system_type] is not None:
                 selected_indices = [evaluated_qa[system_type] - 1] if isinstance(evaluated_qa[system_type], int) else \
                                  [idx - 1 for idx in evaluated_qa[system_type]]
@@ -143,23 +150,16 @@ class TVQAGenerator:
                         correct_answer=qa['answer']
                     )
                     
-                    # 이미지 경로와 함께 API 호출
                     response = get_model_response(QA_EVALUATION['system2']['models'][0], prompt, image_path)
                     try:
                         parsed_response = json.loads(response.replace('```json','').replace('```',''))
-                        qa['options'] = parsed_response.get('options', [])
-                        qa['img_type'] = parsed_response.get('img_type', [])
-                        qa['domain'] = parsed_response.get('domain', [])
+                        qa_candidates[system_type].update({
+                            'options': parsed_response.get('options', [""]),
+                            'img_type': parsed_response.get('img_type', [""]),
+                            'domain': parsed_response.get('domain', [""])
+                        })
                     except (json.JSONDecodeError, KeyError) as e:
                         print(f"옵션/타입/도메인 생성 중 오류 발생: {str(e)}")
-                        qa['options'] = [""]
-                        qa['img_type'] = [""]
-                        qa['domain'] = [""]
-                    print("생성된 정보:", {
-                        'options': qa['options'],
-                        'img_type': qa['img_type'],
-                        'domain': qa['domain']
-                    })
         
         return qa_candidates
 
@@ -168,8 +168,29 @@ class TVQAGenerator:
         filtered_results = filter_images(dir_path, self.ocr_model)
         
         for item in filtered_results:
-            image_caption = self.generate_image_caption(item['image_path'])
-            print("image_caption: ", image_caption)
+            # image_caption = self.generate_image_caption(item['image_path'])
+            # print("image_caption: ", image_caption)
+            image_caption = """**1. 이미지 내 텍스트 정보**
+
+*   **제목:** 한국의 국가별 반도체 수출 비중
+*   **(자료=2020년 기준 무역협회)**
+*   **필리핀 3.0**
+*   **대만 5.2**
+*   **기타 10.6**
+*   **미국 7.7**
+*   **중국 41.1%**
+*   **단위: %**
+*   **베트남 11.6**
+*   **홍콩 20.8**
+
+**2. 텍스트 외의 시각적 요소들**
+
+*   **전반적인 구성:** 파이 차트 형태로, 원형 그래프를 통해 국가별 반도체 수출 비중을 시각적으로 나타냅니다. 배경은 단색의 연한 회색입니다.
+*   **주요 사물:**
+    *   **파이 차트:** 여러 색상으로 구분된 원형 그래프이며, 각 영역은 특정 국가의 반도체 수출 비중을 나타냅니다. 각 영역 옆에는 해당 국가명과 수치가 표시되어 있습니다.
+    *   **반도체 칩:** 이미지 하단 우측에 반도체 칩 그림이 있습니다. 칩은 흰색과 회색의 선으로 단순하게 표현되어 있으며, 그 위에 작은 태극기 깃발이 꽂혀 있습니다.
+    *   **색상:** 각 국가별로 파이 차트 조각이 색상으로 구분되어 있으며, 밝고 채도가 높은 색상이 사용되었습니다.
+*   **분위기:** 통계 데이터를 시각화하여 보여주는 이미지로, 정보 전달에 초점이 맞춰져 있으며, 전체적으로 깔끔하고 정돈된 느낌입니다."""
 
             qa_candidates = self.generate_qa_candidates(image_caption)
             evaluated_qa = self.multi_models_evaluation(qa_candidates, item['image_path'])

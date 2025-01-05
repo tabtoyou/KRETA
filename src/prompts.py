@@ -159,14 +159,28 @@ SYSTEM2_EVAL_TEMPLATE = """이미지와 그에 기반한 추론형 질의응답�
 """
 
 # 유사한 옵션 생성 프롬프트
-OPTIONS_AND_TYPE_PROMPT = """주어진 이미지와 이미지에 대한 <질문>과 <정답>을 참고하여 아래 3가지 작업들을 수행해 후 json 형식으로 출력해 주세요:
+HARD_NEGATIVE_OPTIONS_PROMPT = """주어진 이미지와 이미지에 대한 <질문>과 <정답>을 참고하여 <정답>과 유사한 오답 옵션을 json 형식으로 출력해 주세요:
 
-1. 유사한 오답 옵션 생성
 - 정답과 유사하지만 정답이 아닌 3개의 옵션을 생성
 - 형태나 주제가 기존 정답과 비슷해 구별하기 어려운 Hard Negatives로 작성
 - 실제 정답과 혼동될 수 있도록 설계
 
-2. 이미지 타입 분류
+<질문>
+{question}
+
+<정답>
+{correct_answer}
+
+아래와 같은 JSON 형식으로 출력해 주세요:
+{{
+    "options": ["hard negative 1", "hard negative 2", "hard negative 3"],
+}}
+"""
+
+# 이미지 타입 및 도메인 분류 프롬프트
+DOMAIN_AND_TYPE_PROMPT = """주어진 이미지를 참고하여 아래 2가지 작업들을 수행해 후 json 형식으로 출력해 주세요:
+
+### 1. 이미지 타입 분류
 이미지의 타입을 아래 카테고리 중 하나 이상을 선택해서 영어로 작성. 아래 카테고리에 포함되지 않는 경우 비어있는 [""]로 출력
 - 보고서(Report)
 - 시험지(Test_Paper)
@@ -200,8 +214,8 @@ OPTIONS_AND_TYPE_PROMPT = """주어진 이미지와 이미지에 대한 <질문>
 - 손글씨(Handwriting)
 - 티켓/승선권(Tickets_and_Boarding_Passes)
 
-3. 도메인 분류
-이미지 및 QA의 용도나 목적을 나타내는 구체적인 도메인을 아래 카테고리 중 하나로 영어로 작성
+### 2. 도메인 분류
+이미지의 용도나 목적을 나타내는 구체적인 도메인을 아래 카테고리 중 하나로 영어로 작성
 - 공공/행정 (Public_and_Administration)
 - 법률/규제 (Legal_and_Regulations)
 - 경제/금융 (Economics_and_Finance)
@@ -216,15 +230,8 @@ OPTIONS_AND_TYPE_PROMPT = """주어진 이미지와 이미지에 대한 <질문>
 - 인문/예술 (Arts_and_Humanities)
 - 개인/생활 (Personal_and_Lifestyle)
 
-<질문>
-{question}
-
-<정답>
-{correct_answer}
-
 아래와 같은 JSON 형식으로 출력해 주세요:
 {{
-    "options": ["hard negative 1", "hard negative 2", "hard negative 3"],
     "img_type": ["image type"],
     "domain": ["domain"]
 }}

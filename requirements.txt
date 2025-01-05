@@ -2,9 +2,13 @@ openai
 anthropic
 google-api-python-client
 google-generativeai
+setuptools
 paddleocr==2.9.1
+paddlepaddle
 pandas
 pillow==10.4.0
 python-dotenv==1.0.1
 opencv-python==4.10.0.84
 numpy
+pyarrow
+streamlit

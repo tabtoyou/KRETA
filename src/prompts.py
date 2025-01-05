@@ -159,7 +159,7 @@ SYSTEM2_EVAL_TEMPLATE = """이미지와 그에 기반한 추론형 질의응답�
 """
 
 # 유사한 옵션 생성 프롬프트
-OPTIONS_AND_TYPE_PROMPT = """이미지에 대한 <질문>과 <정답>을 참고하여 아래 작업들을 수행해주세요:
+OPTIONS_AND_TYPE_PROMPT = """주어진 이미지와 이미지에 대한 <질문>과 <정답>을 참고하여 아래 3가지 작업들을 수행해 후 json 형식으로 출력해 주세요:
 
 1. 유사한 오답 옵션 생성
 - 정답과 유사하지만 정답이 아닌 3개의 옵션을 생성
@@ -167,16 +167,54 @@ OPTIONS_AND_TYPE_PROMPT = """이미지에 대한 <질문>과 <정답>을 참고�
 - 실제 정답과 혼동될 수 있도록 설계
 
 2. 이미지 타입 분류
-다음 중 하나를 선택: ["document", "scene", "product", "advertisement", "receipt", "form"]
-- document: 공문서, 계약서 등 공식 문서
-- scene: 거리, 간판, 표지판 등이 포함된 일상적인 장면
-- product: 제품 정보, 패키지 등
-- advertisement: 광고, 홍보물
-- receipt: 영수증, 거래 명세서
-- form: 양식, 신청서 등
+이미지의 타입을 아래 카테고리 중 하나 이상을 선택해서 영어로 작성. 아래 카테고리에 포함되지 않는 경우 비어있는 [""]로 출력
+- 보고서(Report)
+- 시험지(Test_Paper)
+- 종이신문(Newspaper)
+- 안내서/매뉴얼(Manual)
+- 잡지(Magazine)
+- 브로슈어(Brochure)
+- 책표지(Book_Cover)
+- 그림책/만화(Illustrated_Books_and_Comics)
+- 차트(Chart_and_Plot)
+- 표(Table)
+- 다이어그램 (Diagram)
+- 인포그래픽(Infographic)
+- 포스터(Poster)
+- 배너(Banner)
+- 메뉴판(Menu)
+- 포장 라벨(Packaging_Label)
+- 광고 전단(Flyer)
+- 안내판(Signage)
+- 공공 표지판(Public_Signs)
+- 도로 표지판(Street_Signs)
+- 벽화(Mural_and_Graffiti)
+- 모바일 화면(Mobile_Screenshot)
+- PC 화면(PC_Screenshot)
+- 슬라이드(Presentation_Slides)
+- 영상 표지(Video_Thumbnail)
+- 영상 장면(Video_Scene)
+- 영수증(Receipts_and_Invoices)
+- 계약서(Contracts_Documents)
+- 수료증/인증서(Certificates)
+- 손글씨(Handwriting)
+- 티켓/승선권(Tickets_and_Boarding_Passes)
 
-3. 서브 카테고리 분류
-이미지의 세부 용도나 목적을 나타내는 구체적인 카테고리를 한글로 작성 (예: "상품 설명서", "도로 안내판", "식당 메뉴판" 등)
+3. 도메인 분류
+이미지 및 QA의 용도나 목적을 나타내는 구체적인 도메인을 아래 카테고리 중 하나로 영어로 작성
+- 공공/행정 (Public_and_Administration)
+- 법률/규제 (Legal_and_Regulations)
+- 경제/금융 (Economics_and_Finance)
+- 기업/비즈니스 (Corporate_and_Business)
+- 마케팅/광고 (Marketing_and_Advertising)
+- 교육/학술 (Education_and_Academia)
+- 의료/건강 (Medical_and_Healthcare)
+- 교통/물류 (Transportation_and_Logistics)
+- 관광/여행 (Travel_and_Tourism)
+- 오락/미디어 (Entertainment_and_Media)
+- 과학/기술 (Science_and_Technology)
+- 인문/예술 (Arts_and_Humanities)
+- 개인/생활 (Personal_and_Lifestyle)
 
 <질문>
 {question}
@@ -186,9 +224,9 @@ OPTIONS_AND_TYPE_PROMPT = """이미지에 대한 <질문>과 <정답>을 참고�
 
 아래와 같은 JSON 형식으로 출력해 주세요:
 {{
-    "options": ["유사 옵션 1", "유사 옵션 2", "유사 옵션 3"],
-    "img_type": "이미지 타입",
-    "sub_category": "서브 카테고리"
+    "options": ["hard negative 1", "hard negative 2", "hard negative 3"],
+    "img_type": ["image type"],
+    "domain": ["domain"]
 }}
 """
 

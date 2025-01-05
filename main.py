@@ -12,7 +12,7 @@ import pandas as pd
 from PIL import Image
 import io
 from src.config import CAPTION_GENERATION, QA_GENERATION, QA_EVALUATION
-from src.prompts import CAPTION_PROMPT, format_qa_generation_prompt, format_qa_evaluation_prompt, SIMILAR_OPTIONS_PROMPT
+from src.prompts import CAPTION_PROMPT, format_qa_generation_prompt, format_qa_evaluation_prompt, OPTIONS_AND_TYPE_PROMPT
 from typing import Dict, List, Optional
 
 class TVQAGenerator:
@@ -69,7 +69,7 @@ class TVQAGenerator:
                 
         return qa_candidates
 
-    def multi_model_evaluation(self, qa_candidates: Dict, image_path: str) -> Dict[str, Optional[int]]:
+    def multi_models_evaluation(self, qa_candidates: Dict, image_path: str) -> Dict[str, Optional[int]]:
         evaluations = {
             'system1': {},
             'system2': {}
@@ -114,7 +114,10 @@ class TVQAGenerator:
                     'detailed_caption': image_caption,
                     'candidates': qa_candidates[system_type]['qa_list'],
                     'selected_qa': selected_qa_list,
-                    'system': int(system_type[-1])
+                    'system': int(system_type[-1]),
+                    'options': qa_candidates[system_type]['options'],
+                    'img_type': qa_candidates[system_type]['img_type'],
+                    'domain': qa_candidates[system_type]['domain']
                 })
         
         # DataFrame 생성 및 parquet 저장
@@ -127,7 +130,7 @@ class TVQAGenerator:
         return False
 
     def generate_options_and_type(self, qa_candidates: Dict, evaluated_qa: Dict, image_path: str) -> Dict:
-        """선택된 QA에 대해 유사한 오답 옵션들을 생성"""
+        """선택된 QA에 대해 유사한 오답 옵션들과 이미지 타입, 도메인 정보를 생성"""
         for system_type in ['system1', 'system2']:
             if evaluated_qa[system_type] is not None:
                 selected_indices = [evaluated_qa[system_type] - 1] if isinstance(evaluated_qa[system_type], int) else \
@@ -135,18 +138,28 @@ class TVQAGenerator:
                 
                 for idx in selected_indices:
                     qa = qa_candidates[system_type]['qa_list'][idx]
-                    prompt = SIMILAR_OPTIONS_PROMPT.format(
+                    prompt = OPTIONS_AND_TYPE_PROMPT.format(
                         question=qa['question'],
                         correct_answer=qa['answer']
                     )
                     
-                    response = get_model_response(QA_EVALUATION[system_type]['models'][0], prompt, image_path)
+                    # 이미지 경로와 함께 API 호출
+                    response = get_model_response(QA_EVALUATION['system2']['models'][0], prompt, image_path)
                     try:
-                        qa['options'] = json.loads(response.replace('```json','').replace('```',''))['options']
+                        parsed_response = json.loads(response.replace('```json','').replace('```',''))
+                        qa['options'] = parsed_response.get('options', [])
+                        qa['img_type'] = parsed_response.get('img_type', [])
+                        qa['domain'] = parsed_response.get('domain', [])
                     except (json.JSONDecodeError, KeyError) as e:
-                        print(f"옵션 생성 중 오류 발생: {str(e)}")
-                        qa['options'] = []  # 오류 발생 시 정답만 포함
-                    print("qa['options']: ", qa['options'])
+                        print(f"옵션/타입/도메인 생성 중 오류 발생: {str(e)}")
+                        qa['options'] = [""]
+                        qa['img_type'] = [""]
+                        qa['domain'] = [""]
+                    print("생성된 정보:", {
+                        'options': qa['options'],
+                        'img_type': qa['img_type'],
+                        'domain': qa['domain']
+                    })
         
         return qa_candidates
 
@@ -159,7 +172,7 @@ class TVQAGenerator:
             print("image_caption: ", image_caption)
 
             qa_candidates = self.generate_qa_candidates(image_caption)
-            evaluated_qa = self.multi_agent_evaluation(qa_candidates, item['image_path'])
+            evaluated_qa = self.multi_models_evaluation(qa_candidates, item['image_path'])
             print("evaluated_qa: ", evaluated_qa)
             
             # 선택된 QA에 대해 유사 옵션 생성

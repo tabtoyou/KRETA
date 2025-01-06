@@ -24,6 +24,7 @@ def run_app(dataset_path: str):
         st.session_state.df = pd.read_parquet(dataset_path)
         st.session_state.df["domain"] = st.session_state.df["domain"].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
         st.session_state.df["img_type"] = st.session_state.df["img_type"].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
+        st.session_state.df["options"] = st.session_state.df["options"].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
     df = st.session_state.df
 
     # session state 초기화 (page index, selected qa)
@@ -129,11 +130,15 @@ def run_app(dataset_path: str):
         temp_question = st.text_area("Question", value=current_candidate["question"])
         temp_answer = st.text_area("Answer", value=current_candidate["answer"])
         temp_reasoning = st.text_area("Reasoning", value=current_candidate.get("reasoning", ""))
+        temp_option_1 = st.text_input("Option 1", value=row["options"][0])
+        temp_option_2 = st.text_input("Option 2", value=row["options"][1])
+        temp_option_3 = st.text_input("Option 3", value=row["options"][2])
 
         if st.button("Update this QA"):
             current_candidate["question"] = temp_question
             current_candidate["answer"] = temp_answer
             current_candidate["reasoning"] = temp_reasoning
+            row["options"] = [temp_option_1, temp_option_2, temp_option_3]
 
             # question이 selected_qa를 구분하는 key이므로 업데이트
             st.session_state.selected_qa_dict[current_index] = temp_question

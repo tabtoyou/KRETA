@@ -6,11 +6,25 @@ import os
 import glob
 import signal
 import time
+import numpy as np
+
+IMG_TYPE_LIST = ["Report", "Test_Paper", "Newspaper", "Manual", "Magazine", "Brochure", "Book_Cover", "Illustrated_Books_and_Comics", 
+                 "Chart_and_Plot", "Table", "Diagram", "Infographic", "Poster", "Banner", "Menu", "Packaging_Label", "Flyer", "Signage",
+                 "Public_Signs", "Street_Signs", "Mural_and_Graffiti", "Mobile_Screenshot", "PC_Screenshot", "Presentation_Slides", 
+                 "Video_Thumbnail", "Video_Scene", "Receipts_and_Invoices", "Contracts_Documents", "Certificates", "Handwriting", 
+                 "Tickets_and_Boarding_Passes"]
+
+DOMAIN_LIST = ["Public_and_Administration", "Legal_and_Regulations", "Economics_and_Finance", "Corporate_and_Business", 
+               "Marketing_and_Advertising", "Education_and_Academia", "Medical_and_Healthcare", "Transportation_and_Logistics", 
+               "Travel_and_Tourism", "Entertainment_and_Media", "Science_and_Technology", "Arts_and_Humanities", "Personal_and_Lifestyle"]
 
 def run_app(dataset_path: str):
     # Rerun 시에는 캐시된 dataframe을 사용
     if "df" not in st.session_state:
         st.session_state.df = pd.read_parquet(dataset_path)
+        st.session_state.df["domain"] = st.session_state.df["domain"].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
+        st.session_state.df["img_type"] = st.session_state.df["img_type"].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
+        st.session_state.df["options"] = st.session_state.df["options"].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
     df = st.session_state.df
 
     # session state 초기화 (page index, selected qa)
@@ -116,11 +130,15 @@ def run_app(dataset_path: str):
         temp_question = st.text_area("Question", value=current_candidate["question"])
         temp_answer = st.text_area("Answer", value=current_candidate["answer"])
         temp_reasoning = st.text_area("Reasoning", value=current_candidate.get("reasoning", ""))
+        temp_option_1 = st.text_input("Option 1", value=row["options"][0])
+        temp_option_2 = st.text_input("Option 2", value=row["options"][1])
+        temp_option_3 = st.text_input("Option 3", value=row["options"][2])
 
         if st.button("Update this QA"):
             current_candidate["question"] = temp_question
             current_candidate["answer"] = temp_answer
             current_candidate["reasoning"] = temp_reasoning
+            row["options"] = [temp_option_1, temp_option_2, temp_option_3]
 
             # question이 selected_qa를 구분하는 key이므로 업데이트
             st.session_state.selected_qa_dict[current_index] = temp_question
@@ -128,6 +146,43 @@ def run_app(dataset_path: str):
             # dataframe에 반영
             df.iloc[current_index] = row
             st.rerun()
+
+    st.markdown("---")
+
+    # QA 이미지 타입, 도메인 정보 수정 UI
+    col1, col2 = st.columns(2)
+
+    def update_img_type():
+        row['img_type'] = st.session_state[f"img_type_{current_index}"]
+        df.iloc[current_index] = row
+
+    with col1:
+        st.subheader("Image Type")
+        default_img_types = row["img_type"]
+
+        st.multiselect(
+            "Select image types",
+            options=IMG_TYPE_LIST,
+            default=default_img_types,
+            key=f"img_type_{current_index}",
+            on_change=update_img_type
+        )
+    
+    def update_domain():
+        row['domain'] = st.session_state[f"domain_{current_index}"]
+        df.iloc[current_index] = row
+
+    with col2:
+        st.subheader("Domain")
+        default_domains = row["domain"]
+
+        st.multiselect(
+            "Select domains",
+            options=DOMAIN_LIST,
+            default=default_domains,
+            key=f"domain_{current_index}",
+            on_change=update_domain
+        )
 
     st.markdown("---")
 

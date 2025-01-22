@@ -37,7 +37,7 @@ CAPTION_GENERATION = {
 QA_GENERATION = {
     'system1': {
         'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
-        'candidates_per_model': 3, 
+        'candidates_per_model': 2, 
     },
     'system2': {
         'models': ['gpt-4o', 'gemini-2.0-flash-exp'],  #

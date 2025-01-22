@@ -169,30 +169,46 @@ class TVQAGenerator:
         # 출력 디렉토리가 없으면 생성
         os.makedirs(output_dir, exist_ok=True)
         
+        # 중간 저장을 위한 카운터 초기화
+        save_interval = 10  # 10개 이미지마다 저장
+        processed_count = 0
+        
         for item in filtered_results:
-            image_caption = self.generate_image_caption(item['image_path'])
-            print("image_caption: ", image_caption)
+            try:
+                image_caption = self.generate_image_caption(item['image_path'])
+                print("image_caption: ", image_caption)
 
-            qa_candidates = self.generate_qa_candidates(image_caption)
-            evaluated_qa = self.multi_models_evaluation(qa_candidates, item['image_path'])
-            print("evaluated_qa: ", evaluated_qa)
-            
-            # 선택된 QA에 대해 유사 옵션 생성
-            qa_candidates = self.generate_options_and_type(
-                qa_candidates,
-                evaluated_qa,
-                item['image_path']
-            )
-            
-            # 최종 데이터셋 저장
-            self.save_final_qa_dataset(
-                evaluated_qa, 
-                qa_candidates, 
-                item['image_path'],
-                image_caption
-            )
+                qa_candidates = self.generate_qa_candidates(image_caption)
+                evaluated_qa = self.multi_models_evaluation(qa_candidates, item['image_path'])
+                print("evaluated_qa: ", evaluated_qa)
+                
+                qa_candidates = self.generate_options_and_type(
+                    qa_candidates,
+                    evaluated_qa,
+                    item['image_path']
+                )
+                
+                self.save_final_qa_dataset(
+                    evaluated_qa, 
+                    qa_candidates, 
+                    item['image_path'],
+                    image_caption
+                )
+                
+                processed_count += 1
+                
+                # 일정 간격으로 중간 저장
+                if processed_count % save_interval == 0:
+                    temp_df = pd.DataFrame(self.collected_data)
+                    temp_output_path = os.path.join(output_dir, f'qa_dataset_temp_{processed_count}.parquet')
+                    temp_df.to_parquet(temp_output_path, compression='gzip')
+                    print(f"중간 저장 완료: {processed_count}개의 데이터가 처리되었습니다.")
+                    
+            except Exception as e:
+                print(f"이미지 처리 중 오류 발생 ({item['image_path']}): {str(e)}")
+                continue
 
-        # 모든 이미지 처리가 끝난 후 한 번에 저장
+        # 최종 데이터셋 저장
         if self.collected_data:
             df = pd.DataFrame(self.collected_data)
             output_path = os.path.join(output_dir, 'qa_dataset.parquet')

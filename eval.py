@@ -9,14 +9,14 @@ import time
 import numpy as np
 
 IMG_TYPE_LIST = ["Report", "Test_Paper", "Newspaper", "Manual", "Magazine", "Brochure", "Book_Cover", "Illustrated_Books_and_Comics", 
-                 "Chart_and_Plot", "Table", "Diagram", "Infographic", "Poster", "Banner", "Menu", "Packaging_Label", "Flyer", "Signage",
-                 "Public_Signs", "Street_Signs", "Mural_and_Graffiti", "Mobile_Screenshot", "PC_Screenshot", "Presentation_Slides", 
+                 "Chart_and_Plot", "Table", "Diagram", "Infographic", "Poster", "Banner", "Menu", "Packaging_Label", "Flyer", "Signage", "Store_Sign",
+                 "Product_Detail", "Public_Signs", "Street_Signs", "Mural_and_Graffiti", "Mobile_Screenshot", "PC_Screenshot", "Presentation_Slides", 
                  "Video_Thumbnail", "Video_Scene", "Receipts_and_Invoices", "Contracts_Documents", "Certificates", "Handwriting", 
                  "Tickets_and_Boarding_Passes"]
 
 DOMAIN_LIST = ["Public_and_Administration", "Legal_and_Regulations", "Economics_and_Finance", "Corporate_and_Business", 
                "Marketing_and_Advertising", "Education_and_Academia", "Medical_and_Healthcare", "Transportation_and_Logistics", 
-               "Travel_and_Tourism", "Entertainment_and_Media", "Science_and_Technology", "Arts_and_Humanities", "Personal_and_Lifestyle"]
+               "Travel_and_Tourism", "Retail_and_Commerce", "Hospitality_and_Food_Service", "Entertainment_and_Media", "Science_and_Technology", "Arts_and_Humanities", "Personal_and_Lifestyle"]
 
 def run_app(dataset_path: str):
     # 전체 폭 차지

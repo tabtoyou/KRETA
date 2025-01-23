@@ -66,30 +66,37 @@ def check_letters_and_extract_text(image_path, ocr_model):
         print(f"오류 내용: {str(e)}")
         return False, ""
 
-def filter_images(dir_path, ocr_model):
+def filter_images(source_dir_path, ocr_model):
     """이미지 필터링 및 새 디렉토리에 복사"""
     try:
-        if not os.path.exists(dir_path):
-            print(f"디렉토리를 찾을 수 없습니다: {dir_path}")
+        if not os.path.exists(source_dir_path):
+            print(f"디렉토리를 찾을 수 없습니다: {source_dir_path}")
             return []
 
-        new_dir_path = os.path.join(os.path.dirname(dir_path), 'target_images')
-        if not os.path.exists(new_dir_path):
-            os.makedirs(new_dir_path)
+        # 결과물 저장할 디렉토리 경로
+        new_dir_path = os.path.join(os.path.dirname(source_dir_path), 'valid_images')
+        invalid_dir_path = os.path.join(os.path.dirname(source_dir_path), 'invalid_images')
+        
+        for path in [new_dir_path, invalid_dir_path]:
+            if not os.path.exists(path):
+                os.makedirs(path)
 
         filtered_results = []
-        image_list = os.listdir(dir_path)
-        print(f"처리 중: {dir_path}...")
-        
+        image_list = [f for f in os.listdir(source_dir_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        print(f"처리 중: {source_dir_path}...")
+        print("image_list: ", image_list)        
+
         for idx, image in enumerate(image_list):
+            print(idx, image)
             try:
                 print(f"{idx+1}/{len(image_list)}")
-                image_path = os.path.join(dir_path, image)
+                image_path = os.path.join(source_dir_path, image)
                 
                 if not os.path.isfile(image_path):
                     continue
 
-                if check_resolution(image_path):
+                is_valid_resolution = check_resolution(image_path)
+                if is_valid_resolution:
                     is_valid, extracted_text = check_letters_and_extract_text(image_path, ocr_model)
                     if is_valid:
                         new_image_path = os.path.join(new_dir_path, image)
@@ -98,6 +105,12 @@ def filter_images(dir_path, ocr_model):
                             'image_path': new_image_path,
                             'extracted_text': extracted_text
                         })
+                    else:
+                        invalid_image_path = os.path.join(invalid_dir_path, image)
+                        shutil.copy2(image_path, invalid_image_path)
+                else:
+                    invalid_image_path = os.path.join(invalid_dir_path, image)
+                    shutil.copy2(image_path, invalid_image_path)
             
             except Exception as e:
                 print(f"이미지 처리 중 오류 발생: {image}")
@@ -105,6 +118,7 @@ def filter_images(dir_path, ocr_model):
                 continue
         
         print(f"필터링된 이미지가 저장된 경로: {new_dir_path}")
+        print(f"유효하지 않은 이미지가 저장된 경로: {invalid_dir_path}")
         return filtered_results    
     except Exception as e:
         print(f"처리 중 오류 발생")

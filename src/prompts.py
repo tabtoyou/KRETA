@@ -186,6 +186,7 @@ DOMAIN_AND_TYPE_PROMPT = """주어진 이미지를 참고하여 아래 2가지 �
 - 시험지 (Test_Paper)
 - 종이신문 (Newspaper)
 - 안내서/매뉴얼 (Manual)
+- 책 페이지 (Book_Page)
 - 잡지 (Magazine)
 - 브로슈어 (Brochure)
 - 책표지 (Book_Cover)

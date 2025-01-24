@@ -10,7 +10,7 @@ import numpy as np
 from src.api_client import generate_response
 from src.prompts import HARD_NEGATIVE_OPTIONS_PROMPT
 
-IMG_TYPE_LIST = ["Report", "Test_Paper", "Newspaper", "Manual", "Magazine", "Brochure", "Book_Cover", "Illustrated_Books_and_Comics", 
+IMG_TYPE_LIST = ["Report", "Test_Paper", "Newspaper", "Manual", "Book_Page", "Magazine", "Brochure", "Book_Cover", "Illustrated_Books_and_Comics", 
                  "Chart_and_Plot", "Table", "Diagram", "Infographic", "Poster", "Banner", "Menu", "Packaging_Label", "Flyer", "Signage", "Store_Sign",
                  "Product_Detail", "Public_Signs", "Street_Signs", "Mural_and_Graffiti", "Mobile_Screenshot", "PC_Screenshot", "Presentation_Slides", 
                  "Video_Thumbnail", "Video_Scene", "Receipts_and_Invoices", "Contracts_Documents", "Certificates", "Handwriting", 

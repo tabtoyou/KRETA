@@ -190,7 +190,7 @@ class TVQAGenerator:
         os.makedirs(output_dir, exist_ok=True)
         
         # 중간 저장을 위한 카운터 초기화
-        save_interval = 10  # 10개 이미지마다 저장
+        save_interval = 20  # 20개 이미지마다 저장
         processed_count = 0
         
         for item in filtered_results:

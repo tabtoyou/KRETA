@@ -192,8 +192,8 @@ def run_app(dataset_path: str):
                     reasoning_html = f"<br><strong>Reasoning:</strong> {candidate['reasoning']}" if candidate.get("reasoning") else ""
                     card_html = f"""
                         <div class="card {selected_css}">
-                            <strong>Question:</strong> {candidate["question"]}<br>
-                            <strong>Answer:</strong> {candidate["answer"]}{reasoning_html}
+                            <strong>Question:</strong> {candidate["question"]}<br><br>
+                            <strong>Answer:</strong> {candidate["answer"]}<br>{reasoning_html}
                         </div>
                     """
                     st.markdown(card_html, unsafe_allow_html=True)

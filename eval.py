@@ -48,21 +48,93 @@ def run_app(dataset_path: str):
                     break
             df.iloc[idx] = row
 
-        df.to_parquet(dataset_path)
-        st.markdown("저장되었습니다. 브라우저를 닫아주세요.")
+        # 수정된 내용이 있는지 확인
+        if st.session_state.selected_qa_dict:
+            # 새로운 파일명 생성 (원본파일명_MMDDHHMM.parquet)
+            base_path = os.path.splitext(dataset_path)[0]
+            new_path = f"{base_path}_{time.strftime('%m%d%H%M')}.parquet"
+
+            df.to_parquet(new_path)
+            st.markdown(f"새로운 파일에 저장되었습니다: {new_path}")
+        else:
+            st.markdown("수정된 내용이 없습니다.")
+        
+        st.markdown("브라우저를 닫아주세요.")
         time.sleep(0.1)
         os.kill(os.getpid(), signal.SIGTERM)
 
-    # previous, next button
-    col1, col2, col3 = st.columns([1,4,1])
+    # 현재 행 삭제 함수
+    def delete_current_row():
+        if st.session_state.index in st.session_state.selected_qa_dict:
+            del st.session_state.selected_qa_dict[st.session_state.index]
+        
+        # df를 session_state에서 직접 수정
+        st.session_state.df = st.session_state.df.drop(index=st.session_state.df.index[st.session_state.index]).reset_index(drop=True)
+        
+        if st.session_state.index >= len(st.session_state.df):
+            st.session_state.index = len(st.session_state.df) - 1
+        st.rerun()
+
+    # --------------------------------------------------------------------------------
+    # (1) 현재 화면의 QA 정보를 업데이트하는 함수
+    # --------------------------------------------------------------------------------
+    def update_current_qa():
+        """
+        UI에서 입력된 Question / Answer / Reasoning / Options 값을
+        현재 row 및 DataFrame에 반영한다.
+        """
+        current_index = st.session_state.index
+        row = df.iloc[current_index]
+        
+        # 선택된 QA candidate 찾기
+        selected_qa_question = st.session_state.selected_qa_dict[current_index]
+        current_candidate = next((c for c in row["candidates"] if c["question"] == selected_qa_question), None)
+        
+        if current_candidate:
+            # 입력받은 값들
+            temp_question = st.session_state.get(f"temp_question_{current_index}", current_candidate["question"])
+            temp_answer = st.session_state.get(f"temp_answer_{current_index}", current_candidate["answer"])
+            temp_reasoning = st.session_state.get(f"temp_reasoning_{current_index}", current_candidate.get("reasoning", ""))
+            temp_option_1 = st.session_state.get(f"temp_option_1_{current_index}", row["options"][0])
+            temp_option_2 = st.session_state.get(f"temp_option_2_{current_index}", row["options"][1])
+            temp_option_3 = st.session_state.get(f"temp_option_3_{current_index}", row["options"][2])
+            
+            # current_candidate 업데이트
+            current_candidate["question"] = temp_question
+            current_candidate["answer"] = temp_answer
+            current_candidate["reasoning"] = temp_reasoning
+            
+            # options 업데이트
+            row["options"] = [temp_option_1, temp_option_2, temp_option_3]
+            
+            # question 변경시 selected_qa_dict도 갱신
+            st.session_state.selected_qa_dict[current_index] = temp_question
+            
+            # DataFrame 반영
+            df.iloc[current_index] = row
+
+    # --------------------------------------------------------------------------------
+    # Previous / Next / Delete 버튼
+    # --------------------------------------------------------------------------------
+    col1, col2, col3 = st.columns([1.3,4.7,0.4])
     with col1:
         if st.button("Previous"):
             if st.session_state.index > 0:
+                # 이전으로 이동
                 st.session_state.index -= 1
-    with col3:
+                st.rerun()
+    with col2:
+        # "Next" 버튼을 누르면, update_current_qa 함수를 먼저 호출해 수정내용 반영
+        # 그 후 index+1 하고 rerun.
         if st.button("Next"):
+            update_current_qa()
             if st.session_state.index < len(df) - 1:
                 st.session_state.index += 1
+            st.rerun()
+    with col3:
+        if st.button("🗑️ Delete"):
+            if st.session_state.index < len(df):
+                delete_current_row()
 
     current_index = st.session_state.index
     row = df.iloc[current_index]
@@ -77,7 +149,7 @@ def run_app(dataset_path: str):
             st.image(image, caption="참고 이미지")
 
     with col_right:
-        # CSS 스타일 제거 (더 이상 필요하지 않음)
+        # CSS 스타일 (카드 UI)
         st.markdown(
             """
             <style>
@@ -99,18 +171,16 @@ def run_app(dataset_path: str):
             unsafe_allow_html=True
         )
 
-        # container를 사용하여 스크롤 가능한 영역 생성
-        with st.container(height=800):
+        with st.container():
             if current_index not in st.session_state.selected_qa_dict:
                 st.session_state.selected_qa_dict[current_index] = row["selected_qa"][0]["question"]
 
             selected_qa_question = st.session_state.selected_qa_dict[current_index]
-
             candidates = row["candidates"]
             num_columns = min(4, len(candidates))
             cols = st.columns(num_columns)
 
-            # 1) 카드 + Select 버튼 UI
+            # 1) QA 카드 표시 + Select 버튼
             for i, candidate in enumerate(candidates):
                 col_idx = i % num_columns
                 with cols[col_idx]:
@@ -134,25 +204,44 @@ def run_app(dataset_path: str):
                 
                 # 왼쪽 열: Question/Answer/Reasoning
                 with qa_col_left:
-                    temp_question = st.text_input("Question", value=current_candidate["question"])
-                    temp_answer = st.text_input("Answer", value=current_candidate["answer"])
-                    temp_reasoning = st.text_input("Reasoning", value=current_candidate.get("reasoning", ""))
+                    # text_input에서 key를 사용하여, 값이 바뀌면 session_state에 저장
+                    st.text_input(
+                        "Question",
+                        value=current_candidate["question"],
+                        key=f"temp_question_{current_index}"
+                    )
+                    st.text_input(
+                        "Answer",
+                        value=current_candidate["answer"],
+                        key=f"temp_answer_{current_index}"
+                    )
+                    st.text_input(
+                        "Reasoning",
+                        value=current_candidate.get("reasoning", ""),
+                        key=f"temp_reasoning_{current_index}"
+                    )
                 
                 # 오른쪽 열: Options
                 with qa_col_right:
-                    temp_option_1 = st.text_input("Option 1", value=row["options"][0])
-                    temp_option_2 = st.text_input("Option 2", value=row["options"][1])
-                    temp_option_3 = st.text_input("Option 3", value=row["options"][2])
+                    st.text_input(
+                        "Option 1",
+                        value=row["options"][0],
+                        key=f"temp_option_1_{current_index}"
+                    )
+                    st.text_input(
+                        "Option 2",
+                        value=row["options"][1],
+                        key=f"temp_option_2_{current_index}"
+                    )
+                    st.text_input(
+                        "Option 3",
+                        value=row["options"][2],
+                        key=f"temp_option_3_{current_index}"
+                    )
 
+                # "Update this QA" 버튼
                 if st.button("Update this QA"):
-                    current_candidate["question"] = temp_question
-                    current_candidate["answer"] = temp_answer
-                    current_candidate["reasoning"] = temp_reasoning
-                    row["options"] = [temp_option_1, temp_option_2, temp_option_3]
-                    # question이 selected_qa를 구분하는 key이므로 업데이트
-                    st.session_state.selected_qa_dict[current_index] = temp_question
-                    # DataFrame 반영
-                    df.iloc[current_index] = row
+                    update_current_qa()  # (1)에서 정의한 함수 호출
                     st.rerun()
 
             # 3) 이미지 타입, 도메인 수정
@@ -189,6 +278,7 @@ def run_app(dataset_path: str):
             # 4) 저장 후 종료 버튼
             if st.button("저장 후 종료"):
                 save_df_and_stop()
+
 
 def main():
     # 이미 선택된 파일이 있으면 바로 실행

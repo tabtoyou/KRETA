@@ -9,7 +9,7 @@ from src.api_client import get_model_response
 import json
 import argparse
 import pandas as pd
-from PIL import Image
+from PIL import Image, ExifTags
 import io
 from src.config import CAPTION_GENERATION, QA_GENERATION, QA_EVALUATION
 from src.prompts import CAPTION_PROMPT, format_qa_generation_prompt, format_qa_evaluation_prompt, HARD_NEGATIVE_OPTIONS_PROMPT, DOMAIN_AND_TYPE_PROMPT
@@ -97,8 +97,28 @@ class TVQAGenerator:
         """QA 데이터를 수집"""
         # 이미지를 바이트로 변환
         with Image.open(image_path) as img:
+            original_format = img.format or 'JPEG'
+
+            try:
+                # find orientation tag
+                for orientation in ExifTags.TAGS.keys():
+                    if ExifTags.TAGS[orientation] == 'Orientation':
+                        break
+                # get orientation in EXIF data
+                exif = dict(img._getexif().items())
+
+                if orientation in exif:
+                    if exif[orientation] == 3:
+                        img = img.rotate(180, expand=True)
+                    elif exif[orientation] == 6:
+                        img = img.rotate(270, expand=True)
+                    elif exif[orientation] == 8:
+                        img = img.rotate(90, expand=True)
+            except (AttributeError, KeyError, IndexError):
+                pass
+
             img_byte_arr = io.BytesIO()
-            img.save(img_byte_arr, format=img.format)
+            img.save(img_byte_arr, format=original_format)
             img_byte_arr = img_byte_arr.getvalue()
         
         # System1과 System2 데이터 처리

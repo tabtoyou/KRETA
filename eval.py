@@ -53,8 +53,6 @@ def run_app(dataset_path: str):
         time.sleep(0.1)
         os.kill(os.getpid(), signal.SIGTERM)
 
-    st.title("Evaluate QA")
-
     # previous, next button
     col1, col2, col3 = st.columns([1,4,1])
     with col1:
@@ -70,7 +68,7 @@ def run_app(dataset_path: str):
     row = df.iloc[current_index]
 
     # 2열 레이아웃(왼쪽: 이미지, 오른쪽: QA와 수정 UI)
-    col_left, col_right = st.columns([1,1])
+    col_left, col_right = st.columns([1,3])
 
     with col_left:
         st.subheader(f"{current_index + 1}번 이미지 <System: {row['system']}>")
@@ -90,7 +88,7 @@ def run_app(dataset_path: str):
                 padding: 16px;
                 margin: 8px;
                 color: #333;
-                height: 200px;
+                height: 250px;
                 overflow-y: auto;
             }
             .selected-qa {
@@ -102,14 +100,14 @@ def run_app(dataset_path: str):
         )
 
         # container를 사용하여 스크롤 가능한 영역 생성
-        with st.container(height=650):
+        with st.container(height=800):
             if current_index not in st.session_state.selected_qa_dict:
                 st.session_state.selected_qa_dict[current_index] = row["selected_qa"][0]["question"]
 
             selected_qa_question = st.session_state.selected_qa_dict[current_index]
 
             candidates = row["candidates"]
-            num_columns = min(3, len(candidates))
+            num_columns = min(4, len(candidates))
             cols = st.columns(num_columns)
 
             # 1) 카드 + Select 버튼 UI
@@ -129,19 +127,22 @@ def run_app(dataset_path: str):
                         st.session_state.selected_qa_dict[current_index] = candidate["question"]
                         st.rerun()
 
-            st.markdown("---")
-
             # 2) 선택된 QA 수정 UI
             current_candidate = next((c for c in candidates if c["question"] == selected_qa_question), None)
             if current_candidate:
-                temp_question = st.text_area("Question", value=current_candidate["question"])
-                temp_answer = st.text_area("Answer", value=current_candidate["answer"])
-                temp_reasoning = st.text_area("Reasoning", value=current_candidate.get("reasoning", ""))
-
-                # options 수정
-                temp_option_1 = st.text_input("Option 1", value=row["options"][0])
-                temp_option_2 = st.text_input("Option 2", value=row["options"][1])
-                temp_option_3 = st.text_input("Option 3", value=row["options"][2])
+                qa_col_left, qa_col_right = st.columns(2)
+                
+                # 왼쪽 열: Question/Answer/Reasoning
+                with qa_col_left:
+                    temp_question = st.text_input("Question", value=current_candidate["question"])
+                    temp_answer = st.text_input("Answer", value=current_candidate["answer"])
+                    temp_reasoning = st.text_input("Reasoning", value=current_candidate.get("reasoning", ""))
+                
+                # 오른쪽 열: Options
+                with qa_col_right:
+                    temp_option_1 = st.text_input("Option 1", value=row["options"][0])
+                    temp_option_2 = st.text_input("Option 2", value=row["options"][1])
+                    temp_option_3 = st.text_input("Option 3", value=row["options"][2])
 
                 if st.button("Update this QA"):
                     current_candidate["question"] = temp_question
@@ -154,8 +155,6 @@ def run_app(dataset_path: str):
                     df.iloc[current_index] = row
                     st.rerun()
 
-            st.markdown("---")
-
             # 3) 이미지 타입, 도메인 수정
             col_img_type, col_domain = st.columns(2)
 
@@ -164,7 +163,6 @@ def run_app(dataset_path: str):
                 df.iloc[current_index] = row
 
             with col_img_type:
-                st.subheader("Image Type")
                 default_img_types = row["img_type"]
                 st.multiselect(
                     "Select image types",
@@ -179,7 +177,6 @@ def run_app(dataset_path: str):
                 df.iloc[current_index] = row
 
             with col_domain:
-                st.subheader("Domain")
                 default_domains = row["domain"]
                 st.multiselect(
                     "Select domains",
@@ -188,8 +185,6 @@ def run_app(dataset_path: str):
                     key=f"domain_{current_index}",
                     on_change=update_domain
                 )
-
-            st.markdown("---")
 
             # 4) 저장 후 종료 버튼
             if st.button("저장 후 종료"):

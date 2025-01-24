@@ -7,6 +7,8 @@ import glob
 import signal
 import time
 import numpy as np
+from src.api_client import generate_response
+from src.prompts import HARD_NEGATIVE_OPTIONS_PROMPT
 
 IMG_TYPE_LIST = ["Report", "Test_Paper", "Newspaper", "Manual", "Magazine", "Brochure", "Book_Cover", "Illustrated_Books_and_Comics", 
                  "Chart_and_Plot", "Table", "Diagram", "Infographic", "Poster", "Banner", "Menu", "Packaging_Label", "Flyer", "Signage", "Store_Sign",
@@ -51,7 +53,7 @@ def run_app(dataset_path: str):
         # 수정된 내용이 있는지 확인
         if st.session_state.selected_qa_dict:
             # 새로운 파일명 생성 (원본파일명_MMDDHHMM.parquet)
-            base_path = os.path.splitext(dataset_path)[0]
+            base_path = dataset_path.split('_')[0]
             new_path = f"{base_path}_{time.strftime('%m%d%H%M')}.parquet"
 
             df.to_parquet(new_path)
@@ -59,9 +61,11 @@ def run_app(dataset_path: str):
         else:
             st.markdown("수정된 내용이 없습니다.")
         
-        st.markdown("브라우저를 닫아주세요.")
-        time.sleep(0.1)
-        os.kill(os.getpid(), signal.SIGTERM)
+        # 세션 상태 초기화
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        
+        st.rerun()
 
     # 현재 행 삭제 함수
     def delete_current_row():
@@ -239,10 +243,44 @@ def run_app(dataset_path: str):
                         key=f"temp_option_3_{current_index}"
                     )
 
-                # "Update this QA" 버튼
-                if st.button("Update this QA"):
-                    update_current_qa()  # (1)에서 정의한 함수 호출
-                    st.rerun()
+                    # "Update Options" 버튼 - 선택한 QA를 참고해서 새로운 options 만들고 저장
+                    if st.button("🤖 Update Options"):
+                        import json
+                        
+                        prompt = HARD_NEGATIVE_OPTIONS_PROMPT.format(
+                            question=current_candidate["question"],
+                            correct_answer=current_candidate["answer"]
+                        )
+                        
+                        response = generate_response('openai',prompt,'gpt-4o-mini')
+                        if response:
+                            try:
+                                # JSON 응답 파싱
+                                response_json = json.loads(response.replace('```json','').replace('```',''))
+                                new_options = response_json.get("options", [])
+                                print(new_options)
+                                
+                                if len(new_options) == 3:
+                                    all_options = [
+                                        new_options[0],
+                                        new_options[1],
+                                        new_options[2],
+                                        current_candidate["answer"]
+                                    ]
+                                    
+                                    # DataFrame에 반영
+                                    row["options"] = all_options
+                                    df.iloc[current_index] = row
+                                    
+                                    # 성공 메시지 표시
+                                    st.success("옵션이 업데이트되었습니다!")
+                                    st.rerun()
+                                else:
+                                    st.error("충분한 옵션이 생성되지 않았습니다.")
+                            except json.JSONDecodeError as e:
+                                st.error("응답 형식이 올바르지 않습니다.")
+                            except Exception as e:
+                                st.error(f"오류가 발생했습니다: {str(e)}")
 
             # 3) 이미지 타입, 도메인 수정
             col_img_type, col_domain = st.columns(2)

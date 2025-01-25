@@ -3,6 +3,7 @@ import numpy as np
 import shutil
 import os
 import json
+import re
 
 def check_resolution(image_path):
     """Check image resolution (minimum dimension: 384px)"""
@@ -141,9 +142,9 @@ def aggregate_votes(eval_results, num_to_select):
 def parse_ranking_response(response):
     """Extract ranking information from evaluation response"""
     try:
-        result = json.loads(response.replace('```json','').replace('```',''))
+        response_cleaned = response.replace('```json', '').replace('```', '').replace('\n','').strip()
+        result = json.loads(response_cleaned)
         return result.get('ranking', [])
     except Exception as e:
         print(f"Error parsing ranking response: {e}")
-        print(response)
         return []

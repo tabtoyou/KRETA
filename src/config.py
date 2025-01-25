@@ -47,7 +47,7 @@ QA_GENERATION = {
         'candidates_per_model': 2, 
     },
     'system2': {
-        'models': ['o1-mini', 'gemini-2.0-flash-exp'],  #
+        'models': ['o1-mini', 'gemini-2.0-flash-exp'], 
         'candidates_per_model': 2,  
     }
 }

@@ -7,6 +7,7 @@ from src.utils import (
 )
 from src.api_client import get_model_response
 import json
+import time
 import argparse
 import pandas as pd
 from PIL import Image, ExifTags
@@ -63,7 +64,7 @@ class TVQAGenerator:
         for response in system1_responses:
             if response:
                 try:
-                    qa_list = json.loads(response.replace('```json','').replace('```',''))['qa_list']
+                    qa_list = json.loads(response.replace('```json', '').replace('```', '').replace('\n','').strip())['qa_list']
                     qa_candidates['system1']['qa_list'].extend(qa_list)
                 except json.JSONDecodeError as e:
                     print(f"JSON parsing error: {str(e)}")
@@ -82,7 +83,7 @@ class TVQAGenerator:
         for response in system2_responses:
             if response:
                 try:
-                    qa_list = json.loads(response.replace('```json','').replace('```',''))['qa_list']
+                    qa_list = json.loads(response.replace('```json', '').replace('```', '').replace('\n','').strip())['qa_list']
                     qa_candidates['system2']['qa_list'].extend(qa_list)
                 except json.JSONDecodeError as e:
                     print(f"JSON parsing error: {str(e)}")
@@ -134,7 +135,7 @@ class TVQAGenerator:
         )
         
         try:
-            parsed_type_domain = json.loads(type_domain_response.replace('```json','').replace('```',''))
+            parsed_type_domain = json.loads(type_domain_response.replace('```json', '').replace('```', '').replace('\n','').strip())
             img_type = parsed_type_domain.get('img_type', [""])
             domain = parsed_type_domain.get('domain', [""])
         except (json.JSONDecodeError, KeyError) as e:
@@ -169,7 +170,7 @@ class TVQAGenerator:
                 
                 for response in option_responses:
                     try:
-                        parsed_response = json.loads(response.replace('```json','').replace('```',''))
+                        parsed_response = json.loads(response.replace('```json', '').replace('```', '').replace('\n','').strip())
                         qa_candidates[system_type]['options'] = parsed_response.get('options', [""])
                     except (json.JSONDecodeError, KeyError) as e:
                         print(f"Error occurred during options generation: {str(e)}")
@@ -227,6 +228,9 @@ class TVQAGenerator:
         filtered_results = filter_images(dir_path, self.ocr_model)
         os.makedirs(output_dir, exist_ok=True)
         
+        processed_dir = os.path.join(os.path.dirname(dir_path), 'processed')
+        os.makedirs(processed_dir, exist_ok=True)
+        
         processed_count = 0
         
         for item in filtered_results:
@@ -236,6 +240,7 @@ class TVQAGenerator:
                 print("image_caption: ", image_caption)
 
                 qa_candidates = await self.generate_qa_candidates(image_caption)
+                print("qa_candidates: ", qa_candidates)
                 evaluated_qa = await self.multi_models_evaluation(qa_candidates, item['image_path'])
                 print("evaluated_qa: ", evaluated_qa)
                 
@@ -245,6 +250,7 @@ class TVQAGenerator:
                     item['image_path']
                 )
                 
+                
                 self.save_final_qa_dataset(
                     evaluated_qa, 
                     qa_candidates, 
@@ -252,11 +258,21 @@ class TVQAGenerator:
                     image_caption
                 )
                 
+                image_filename = os.path.basename(item['image_path'])
+                processed_path = os.path.join(processed_dir, image_filename)
+
+                # 파일 이동 및 원본 삭제
+                try:
+                    os.rename(item['image_path'], processed_path)
+                except Exception as move_error:
+                    print(f"Error moving file to processed directory: {str(move_error)}")
+                    continue
+                
                 processed_count += 1
                 
                 if processed_count % save_interval == 0:
                     temp_df = pd.DataFrame(self.collected_data)
-                    temp_output_path = os.path.join(output_dir, f'qa_dataset_temp_{processed_count}.parquet')
+                    temp_output_path = os.path.join(output_dir, f'KoTextVQA_temp_{processed_count}.parquet')
                     temp_df.to_parquet(temp_output_path, compression='gzip')
                     print(f"Intermediate save completed: {processed_count} data items processed.")
                     
@@ -266,7 +282,7 @@ class TVQAGenerator:
 
         if self.collected_data:
             df = pd.DataFrame(self.collected_data)
-            output_path = os.path.join(output_dir, 'qa_dataset.parquet')
+            output_path = os.path.join(output_dir, f'KoTextVQA_{time.strftime("%m%d%H%M")}.parquet')
             df.to_parquet(output_path, compression='gzip')
             print(f"Total {len(self.collected_data)} data items have been saved.")
 
@@ -274,7 +290,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='TVQA Generator')
     parser.add_argument('-d', '--input_directory', type=str, required=False, default='./data/images')
     parser.add_argument('-r', '--output_directory', type=str, required=False, default='./results')
-    parser.add_argument('-s', '--save_interval', type=int, required=False, default=50,
+    parser.add_argument('-s', '--save_interval', type=int, required=False, default=2,
                       help='중간 저장 간격 (처리된 이미지 수 기준)')
     args = parser.parse_args()
     

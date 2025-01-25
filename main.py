@@ -108,6 +108,8 @@ class TVQAGenerator:
                 for model_name in QA_EVALUATION[system_type]['models']
             ]
             responses = await asyncio.gather(*eval_tasks)
+
+            print("multi_models_evaluation: ", responses)
             
             for model_name, response in zip(QA_EVALUATION[system_type]['models'], responses):
                 if response:
@@ -228,6 +230,7 @@ class TVQAGenerator:
         processed_count = 0
         
         for item in filtered_results:
+            print(f"\n진행 상황: {processed_count + 1}/{len(filtered_results)} 이미지 처리 중...")
             try:
                 image_caption = await self.generate_image_caption(item['image_path'])
                 print("image_caption: ", image_caption)

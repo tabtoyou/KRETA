@@ -139,6 +139,12 @@ async def generate_response(provider, prompt, model_name=None):
     try:
         model_config = get_model_config(model_name)
         if provider == 'openai':
+            if model_name == "o1-mini":
+                response = await api_clients.get_client('openai').chat.completions.create(
+                model=model_config['name'],
+                messages=[{"role": "user", "content": prompt}],
+                )
+                return response.choices[0].message.content       
             response = await api_clients.get_client('openai').chat.completions.create(
                 model=model_config['name'],
                 messages=[{"role": "user", "content": prompt}],
@@ -161,32 +167,6 @@ async def generate_response(provider, prompt, model_name=None):
         print(f"Error generating {provider} API response: {e}")
         return None
 
-async def generate_response(provider, prompt, model_name=None):
-    """Generate text-based response"""
-    try:
-        model_config = get_model_config(model_name)
-        if provider == 'openai':
-            response = await api_clients.get_client('openai').chat.completions.create(
-                model=model_config['name'],
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                max_tokens=model_config.get('max_tokens', 1000),
-            )
-            return response.choices[0].message.content
-        elif provider == 'google':
-            model = api_clients.get_client('google').GenerativeModel(model_name=model_config['name'])
-            response = model.generate_content(prompt)
-            return response.text
-        elif provider == 'anthropic':
-            message = api_clients.get_client('anthropic').messages.create(
-                model=model_config['name'],
-                max_tokens=model_config.get('max_tokens', 1000),
-                messages=[{"role": "user", "content": prompt}]
-            )
-            return message.content[0].text
-    except Exception as e:
-        print(f"Error generating {provider} API response: {e}")
-        return None
 
 async def get_model_response(model_name: str, prompt: str, image_path: str = None) -> Optional[str]:
     """Generate model response"""

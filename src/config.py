@@ -22,6 +22,10 @@ AVAILABLE_MODELS = {
         'name': 'gpt-4o-mini-2024-07-18',
         'max_tokens': 1000,
     },
+    'o1-mini': {
+        'provider': 'openai',
+        'name': 'o1-mini-2024-09-12',
+    },
     'gemini-2.0-flash-exp': {
         'provider': 'google',
         'name': 'gemini-2.0-flash-exp',
@@ -33,28 +37,54 @@ AVAILABLE_MODELS = {
     }
 }
 
+# CAPTION_GENERATION = {
+#     'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
+# }
+
+# QA_GENERATION = {
+#     'system1': {
+#         'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
+#         'candidates_per_model': 2, 
+#     },
+#     'system2': {
+#         'models': ['gpt-4o', 'gemini-2.0-flash-exp'],  #
+#         'candidates_per_model': 2,  
+#     }
+# }
+
+# QA_EVALUATION = {
+#     'system1': {
+#         'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
+#         'num_to_select': 1, 
+#     },
+#     'system2': {
+#         'models': ['gpt-4o', 'gemini-2.0-flash-exp'],
+#         'num_to_select': 1,
+#     }
+# }
+
 CAPTION_GENERATION = {
-    'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
+    'models': ['gpt-4o-mini'],  
 }
 
 QA_GENERATION = {
     'system1': {
-        'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
-        'candidates_per_model': 2, 
+        'models': ['gpt-4o-mini'],  
+        'candidates_per_model': 4, 
     },
     'system2': {
-        'models': ['gpt-4o', 'gemini-2.0-flash-exp'],  #
-        'candidates_per_model': 2,  
+        'models': ['o1-mini'],  #
+        'candidates_per_model': 4,  
     }
 }
 
 QA_EVALUATION = {
     'system1': {
-        'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
+        'models': ['gpt-4o-mini'],  
         'num_to_select': 1, 
     },
     'system2': {
-        'models': ['gpt-4o', 'gemini-2.0-flash-exp'],
+        'models': ['gpt-4o'],
         'num_to_select': 1,
     }
 }

@@ -68,7 +68,7 @@ SYSTEM2_QA_TEMPLATE = """다음은 이미지 내 텍스트 정보를 기반으�
 - 단순한 텍스트 인식에 그치지 않고, 텍스트를 토대로 깊은 의미의 이해나 수학적/논리적 추론이 필요한 문제를 생성 (기간, 수치 계산 등)
 - 사용법과 관련된 정보가 포함된 이미지일 경우, 다음 스텝에 대한 질문 등을 생성
 - 단순히 이미지 내 정보만으로는 답하기 어렵게 구성하고, 최종적인 정답은 한 단어나 짧은 구 형태로 제시
-- 이미지 내 존재하는 텍스트를 정답으로 사용하지 않음
+- 일반적으로 이미지를 보고 사람들이 궁금해 할 부분들을 질문으로 작성
 - 객관적이고 명확한 근거를 바탕으로 모호하지 않은 질문과 정답을 생성
 - 정답을 도출하기 위해 필요한 추론 과정을 "reasoning" 필드에 명시
 
@@ -117,45 +117,47 @@ SYSTEM2_QA_TEMPLATE = """다음은 이미지 내 텍스트 정보를 기반으�
 """
 
 # 평가 프롬프트
-SYSTEM1_EVAL_TEMPLATE = """다음은 이미지와 그에 기반한 질의응답 후보들입니다.
+SYSTEM1_EVAL_TEMPLATE = """이미지와 관련된 질의응답 <QA 후보>를 평가하고, 순위를 결정해 주세요.
 
-<QA 후보>들 중에서 다음 기준에 따라 가장 적절한 질문-답변 쌍을 선택해주세요:
+- 아래 <응답 형식>에 맞춰 reasoning에 판단 근거를 작성하고, ranking에 순위를 답하세요.
+- 각 QA가 <평가 기준>의 5개 항목에 대해 각각 0~5점으로 평가하여 총점 25점 중 몇 점인지 **엄격하고 비판적으로 평가**해 reasoning에 기록해 주세요. 그리고 각 QA의 점수를 합산하여 최종 순위를 결정하세요.
 
-평가 기준:
-1. 이미지 내 텍스트 인식이 필수적이며 텍스트 정보를 정확하게 활용하는가?
-2. 답변이 명확하고 객관적이며 검증 가능한가?
-3. 난이도가 너무 쉽거나 어렵지 않고 적절한가?
-4. 질문이 구체적이고 명확하게 작성되었는가?
-5. 이미지와 텍스트 정보를 통합적으로 활용하는가?
-
-위 기준에 따라 QA 후보들의 순위를 매겨주세요. 아래 <응답 형식>을 따라 판단 근거를 comment에 작성하고, ranking 을 따로 답하세요.
+<평가 기준>
+Text Utilization: 이미지 내 텍스트 인식이 필수적이며 텍스트 정보를 얼마나 활용하는가? (0~5점)
+Clarity: 질문이 구체적이고 명확하며, 답변이 정확하고 명료한가? (0~5점)
+Factfulness: 이미지를 고려했을 때 답변이 사실에 기반하여 정확하고 신뢰할 수 있는가? (0~5점)
+Naturalness: 질문과 답변이 자연스럽고 어색하지 않은가? (0~5점)
+Alignment: 질문의 내용과 의도가 이미지의 정보 전달 의도에 얼마나 잘 부합하는가? (0~5점)
 
 <응답 형식>
-{{"comment": "순위 판단 근거", "ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
+{{"reasoning": "순위 판단 근거", "ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
 
 <응답 예시>
-{{"comment": "평가 기준에 따라 ~", "ranking": [2, 3, 1, ..., n]}}
+{{"reasoning": "QA 1:\n- Text Utilization: 3점\n- Clarity: 4점\n ... \n\n총합\n- QA 1: 20점\n- QA 2: 23점 ...", "ranking": [2, 3, 1, ..., n]}}
 
 <QA 후보>
 {qa_candidates}
 """
 
-SYSTEM2_EVAL_TEMPLATE = """이미지와 그에 기반한 추론형 질의응답인 <QA 후보>들 중에서 다음 <평가 기준>에 따라 가장 적절한 질문-답변 쌍의 순위를 매겨주세요.
+SYSTEM2_EVAL_TEMPLATE = """이미지와 관련된 질의응답 <QA 후보>를 평가하고, 순위를 결정해 주세요.
+
+- 아래 <응답 형식>에 맞춰 reasoning에 판단 근거를 작성하고, ranking에 순위를 답하세요.
+- 각 QA가 <평가 기준>의 5개 항목에 대해 0~5점으로 평가하여 총점 35점 중 몇 점인지 **엄격하고 비판적으로 평가**해 reasoning에 기록해 주세요. 그리고 각 QA의 점수를 합산하여 최종 순위를 결정하세요.
 
 <평가 기준>
-1. 이미지 내 텍스트를 기반으로 한 고차원적 추론이 필요한가?
-2. 추론 과정이 논리적이고 단계적으로 명확한가?
-3. 난이도가 너무 쉽지 않고 적절한가?
-4. 질문이 구체적이고 답변이 정확한가?
-5. 이미지와 텍스트 정보를 통합적으로 활용하는가?
-
-아래 <응답 형식>을 따라 ranking 만 답하세요.
+Text Utilization: 이미지 내 텍스트 인식이 필수적이며 텍스트 정보를 얼마나 활용하는가? (0~5점)
+Clarity: 질문이 구체적이고 명확하며, 답변이 정확하고 명료한가? (0~5점)
+Factfulness: 이미지를 고려했을 때 답변이 사실에 기반하여 정확하고 신뢰할 수 있는가? (0~5점)
+Naturalness: 질문과 답변이 자연스럽고 어색하지 않은가? (0~5점)
+Alignment: 질문의 내용과 의도가 이미지의 정보 전달 의도에 얼마나 잘 부합하는가? (0~5점)
+Complexity: 질문이 한 번 이상의 추론을 요구하며, 이미지 내 정보와 관련된 일반 상식을 묻는 등 난이도가 쉽지 않고 적절한가? (0~5점)
+Coherence: 추론 과정이 논리적이고 단계적으로 명확한가? (0~5점)
 
 <응답 형식>
-{{"comment": "순위 판단 근거", "ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
+{{"reasoning": "순위 판단 근거", "ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
 
 <응답 예시>
-{{"comment": "평가 기준에 따라 ~", "ranking": [2, 3, 1, ..., n]}}
+{{"reasoning": "QA 1:\n- Text Utilization: 3점\n- Clarity: 4점\n ... \n\n총합\n- QA 1: 20점\n- QA 2: 23점 ...", "ranking": [2, 3, 1, ..., n]}}
 
 <QA 후보>
 {qa_candidates}
@@ -257,9 +259,25 @@ def format_qa_generation_prompt(system_type: str, image_caption: str, num_questi
 def format_qa_evaluation_prompt(system_type: str, qa_candidates: list) -> str:
     """Format QA evaluation prompt"""
     template = SYSTEM1_EVAL_TEMPLATE if system_type == 'system1' else SYSTEM2_EVAL_TEMPLATE
-    
+
     # Convert QA candidates list to string
     qa_list_str = json.dumps(qa_candidates, ensure_ascii=False, indent=2)
+    
+    # 번호 추가를 위해 각 줄을 분리
+    lines = qa_list_str.split('\n')
+    
+    # "qa_list" 배열의 각 항목 시작점에 번호 추가
+    current_qa = 0
+    numbered_lines = []
+    for line in lines:
+        if '"question"' in line:  # 새로운 QA 항목의 시작
+            current_qa += 1
+            numbered_lines.append(f"\nQA {current_qa}:")
+        numbered_lines.append(line)
+    
+    qa_list_str = '\n'.join(numbered_lines)
+
+    print(qa_list_str)
     
     return template.format(
         qa_candidates=qa_list_str,

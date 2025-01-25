@@ -37,54 +37,28 @@ AVAILABLE_MODELS = {
     }
 }
 
-# CAPTION_GENERATION = {
-#     'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
-# }
-
-# QA_GENERATION = {
-#     'system1': {
-#         'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
-#         'candidates_per_model': 2, 
-#     },
-#     'system2': {
-#         'models': ['gpt-4o', 'gemini-2.0-flash-exp'],  #
-#         'candidates_per_model': 2,  
-#     }
-# }
-
-# QA_EVALUATION = {
-#     'system1': {
-#         'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
-#         'num_to_select': 1, 
-#     },
-#     'system2': {
-#         'models': ['gpt-4o', 'gemini-2.0-flash-exp'],
-#         'num_to_select': 1,
-#     }
-# }
-
 CAPTION_GENERATION = {
-    'models': ['gpt-4o-mini'],  
+    'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
 }
 
 QA_GENERATION = {
     'system1': {
-        'models': ['gpt-4o-mini'],  
-        'candidates_per_model': 4, 
+        'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
+        'candidates_per_model': 2, 
     },
     'system2': {
-        'models': ['o1-mini'],  #
-        'candidates_per_model': 4,  
+        'models': ['o1-mini', 'gemini-2.0-flash-exp'],  #
+        'candidates_per_model': 2,  
     }
 }
 
 QA_EVALUATION = {
     'system1': {
-        'models': ['gpt-4o-mini'],  
+        'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
         'num_to_select': 1, 
     },
     'system2': {
-        'models': ['gpt-4o'],
+        'models': ['gpt-4o', 'gemini-2.0-flash-exp'],
         'num_to_select': 1,
     }
 }

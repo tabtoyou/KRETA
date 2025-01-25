@@ -1,19 +1,22 @@
 import json
+from .config import LANGUAGE
 
 # 캡션 생성 프롬프트
-CAPTION_PROMPT = """이미지에서 텍스트를 포함한 시각적 요소들에 대해 최대한 상세하게 설명해주세요.
+CAPTION_PROMPT = """이미지에서 텍스트를 포함한 시각적 요소들에 대해 최대한 상세하게 설명해주세요. 출력한 상세설명만 읽고도 이미지를 파악할 수 있도록 작성해 주세요.
 
-1. 이미지 내 텍스트 정보
-   - 이미지에 포함된 **모든 텍스트**를 출력
-
-2. 텍스트 외의 시각적 요소들
+1. 텍스트 외의 시각적 요소들
    - 전반적인 장면/문서의 구성과 분위기
    - 주요 사물 혹은 객체들의 특징
    - 배경 및 시공간의 세부 특징
 
-3. 텍스트와 이미지 요소 간의 관계성
+2. 텍스트와 이미지 요소 간의 관계성
     - 추출한 텍스트 정보와 이미지 요소 간의 시각적/의미적 연관성 분석
-    - 각 텍스트 정보가 이미지 내에서 전달하는 정보가 무엇인지 분석"""
+    - 각 텍스트 정보가 이미지 내에서 전달하는 정보가 무엇인지 분석
+
+3. 이미지 내 텍스트 정보
+   3.1 이미지에 포함된 **모든 텍스트**를 출력
+   3.2 앞서 출력한 모든 텍스트 정보를 json과 같이 구조화된 형태로 재구성해 출력"""
+
 
 # QA 생성 프롬프트
 SYSTEM1_QA_TEMPLATE = """다음은 이미지 내 텍스트 정보를 인식하고 이해하는 능력을 평가하기 위한 질의응답 생성 요청입니다.
@@ -125,13 +128,13 @@ SYSTEM1_EVAL_TEMPLATE = """다음은 이미지와 그에 기반한 질의응답 
 4. 질문이 구체적이고 명확하게 작성되었는가?
 5. 이미지와 텍스트 정보를 통합적으로 활용하는가?
 
-위 기준에 따라 QA 후보들의 순위를 매겨주세요. 아래 <응답 형식>을 따라 ranking 만 답하세요.
+위 기준에 따라 QA 후보들의 순위를 매겨주세요. 아래 <응답 형식>을 따라 판단 근거를 comment에 작성하고, ranking 을 따로 답하세요.
 
 <응답 형식>
-{{"ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
+{{"comment": "순위 판단 근거", "ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
 
 <응답 예시>
-{{"ranking": [2, 3, 1, ..., n]}}
+{{"comment": "평가 기준에 따라 ~", "ranking": [2, 3, 1, ..., n]}}
 
 <QA 후보>
 {qa_candidates}
@@ -149,10 +152,10 @@ SYSTEM2_EVAL_TEMPLATE = """이미지와 그에 기반한 추론형 질의응답�
 아래 <응답 형식>을 따라 ranking 만 답하세요.
 
 <응답 형식>
-{{"ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
+{{"comment": "순위 판단 근거", "ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
 
 <응답 예시>
-{{"ranking": [2, 3, 1, ..., n]}}
+{{"comment": "평가 기준에 따라 ~", "ranking": [2, 3, 1, ..., n]}}
 
 <QA 후보>
 {qa_candidates}
@@ -243,18 +246,22 @@ DOMAIN_AND_TYPE_PROMPT = """주어진 이미지를 참고하여 아래 2가지 �
 """
 
 def format_qa_generation_prompt(system_type: str, image_caption: str, num_questions: int) -> str:
-    """QA 생성 프롬프트 포맷팅"""
+    """Format QA generation prompt"""
     template = SYSTEM1_QA_TEMPLATE if system_type == 'system1' else SYSTEM2_QA_TEMPLATE
     return template.format(
         image_caption=image_caption,
-        num_questions=num_questions
+        num_questions=num_questions,
+        language=LANGUAGE
     )
 
 def format_qa_evaluation_prompt(system_type: str, qa_candidates: list) -> str:
-    """QA 평가 프롬프트 포맷팅"""
+    """Format QA evaluation prompt"""
     template = SYSTEM1_EVAL_TEMPLATE if system_type == 'system1' else SYSTEM2_EVAL_TEMPLATE
     
-    # QA 후보 목록을 문자열로 변환
+    # Convert QA candidates list to string
     qa_list_str = json.dumps(qa_candidates, ensure_ascii=False, indent=2)
     
-    return template.format(qa_candidates=qa_list_str) 
+    return template.format(
+        qa_candidates=qa_list_str,
+        language=LANGUAGE
+    ) 

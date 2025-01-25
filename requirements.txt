@@ -1,4 +1,4 @@
-openai
+openai>=1.60.1
 anthropic
 google-api-python-client
 google-generativeai

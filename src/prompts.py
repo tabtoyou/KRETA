@@ -1,19 +1,22 @@
 import json
+from .config import LANGUAGE
 
 # 캡션 생성 프롬프트
-CAPTION_PROMPT = """이미지에서 텍스트를 포함한 시각적 요소들에 대해 최대한 상세하게 설명해주세요.
+CAPTION_PROMPT = """이미지에서 텍스트를 포함한 시각적 요소들에 대해 최대한 상세하게 설명해주세요. 출력한 상세설명만 읽고도 이미지를 파악할 수 있도록 작성해 주세요.
 
-1. 이미지 내 텍스트 정보
-   - 이미지에 포함된 **모든 텍스트**를 출력
-
-2. 텍스트 외의 시각적 요소들
+1. 텍스트 외의 시각적 요소들
    - 전반적인 장면/문서의 구성과 분위기
    - 주요 사물 혹은 객체들의 특징
    - 배경 및 시공간의 세부 특징
 
-3. 텍스트와 이미지 요소 간의 관계성
+2. 텍스트와 이미지 요소 간의 관계성
     - 추출한 텍스트 정보와 이미지 요소 간의 시각적/의미적 연관성 분석
-    - 각 텍스트 정보가 이미지 내에서 전달하는 정보가 무엇인지 분석"""
+    - 각 텍스트 정보가 이미지 내에서 전달하는 정보가 무엇인지 분석
+
+3. 이미지 내 텍스트 정보
+   3.1 이미지에 포함된 **모든 텍스트**를 출력
+   3.2 앞서 출력한 모든 텍스트 정보를 json과 같이 구조화된 형태로 재구성해 출력"""
+
 
 # QA 생성 프롬프트
 SYSTEM1_QA_TEMPLATE = """다음은 이미지 내 텍스트 정보를 인식하고 이해하는 능력을 평가하기 위한 질의응답 생성 요청입니다.
@@ -125,13 +128,13 @@ SYSTEM1_EVAL_TEMPLATE = """다음은 이미지와 그에 기반한 질의응답 
 4. 질문이 구체적이고 명확하게 작성되었는가?
 5. 이미지와 텍스트 정보를 통합적으로 활용하는가?
 
-위 기준에 따라 QA 후보들의 순위를 매겨주세요. 아래 <응답 형식>을 따라 ranking 만 답하세요.
+위 기준에 따라 QA 후보들의 순위를 매겨주세요. 아래 <응답 형식>을 따라 판단 근거를 comment에 작성하고, ranking 을 따로 답하세요.
 
 <응답 형식>
-{{"ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
+{{"comment": "순위 판단 근거", "ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
 
 <응답 예시>
-{{"ranking": [2, 3, 1, ..., n]}}
+{{"comment": "평가 기준에 따라 ~", "ranking": [2, 3, 1, ..., n]}}
 
 <QA 후보>
 {qa_candidates}
@@ -149,28 +152,116 @@ SYSTEM2_EVAL_TEMPLATE = """이미지와 그에 기반한 추론형 질의응답�
 아래 <응답 형식>을 따라 ranking 만 답하세요.
 
 <응답 형식>
-{{"ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
+{{"comment": "순위 판단 근거", "ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
 
 <응답 예시>
-{{"ranking": [2, 3, 1, ..., n]}}
+{{"comment": "평가 기준에 따라 ~", "ranking": [2, 3, 1, ..., n]}}
 
 <QA 후보>
 {qa_candidates}
 """
 
+# 유사한 옵션 생성 프롬프트
+HARD_NEGATIVE_OPTIONS_PROMPT = """주어진 이미지와 이미지에 대한 <질문>과 <정답>을 참고하여 <정답>과 유사한 오답 옵션을 json 형식으로 출력해 주세요:
+
+- 정답과 유사하지만 정답이 아닌 3개의 옵션을 생성
+- 형태나 주제가 기존 정답과 비슷해 구별하기 어려운 Hard Negatives로 작성
+- 실제 정답과 혼동될 수 있도록 설계
+
+<질문>
+{question}
+
+<정답>
+{correct_answer}
+
+아래와 같은 JSON 형식으로 출력해 주세요:
+{{
+    "options": ["hard negative 1", "hard negative 2", "hard negative 3"],
+}}
+"""
+
+# 이미지 타입 및 도메인 분류 프롬프트
+DOMAIN_AND_TYPE_PROMPT = """주어진 이미지를 참고하여 아래 2가지 작업들을 수행해 후 json 형식으로 출력해 주세요:
+
+### 1. 이미지 타입 분류
+이미지의 타입을 아래 카테고리 중 하나 이상을 선택해서 영어로 작성. 아래 카테고리에 포함되지 않는 경우 비어있는 [""]로 출력
+- 보고서 (Report)
+- 시험지 (Test_Paper)
+- 종이신문 (Newspaper)
+- 안내서/매뉴얼 (Manual)
+- 책 페이지 (Book_Page)
+- 잡지 (Magazine)
+- 브로슈어 (Brochure)
+- 책표지 (Book_Cover)
+- 그림책/만화 (Illustrated_Books_and_Comics)
+- 차트 (Chart_and_Plot)
+- 표 (Table)
+- 다이어그램 (Diagram)
+- 인포그래픽 (Infographic)
+- 포스터 (Poster)
+- 배너 (Banner)
+- 메뉴판 (Menu)
+- 포장 라벨 (Packaging_Label)
+- 광고 전단 (Flyer)
+- 안내판 (Signage)
+- 상점 간판 (Store_Sign)
+- 상품 상세 이미지 (Product_Detail)
+- 공공 표지판 (Public_Signs)
+- 도로 표지판 (Street_Signs)
+- 벽화 (Mural_and_Graffiti)
+- 모바일 화면 (Mobile_Screenshot)
+- PC 화면 (PC_Screenshot)
+- 슬라이드 (Presentation_Slides)
+- 영상 표지 (Video_Thumbnail)
+- 영상 장면 (Video_Scene)
+- 영수증 (Receipts_and_Invoices)
+- 계약서 (Contracts_Documents)
+- 수료증/인증서 (Certificates)
+- 손글씨 (Handwriting)
+- 티켓/승선권 (Tickets_and_Boarding_Passes)
+
+### 2. 도메인 분류
+이미지의 용도나 목적을 나타내는 구체적인 도메인을 아래 카테고리 중 하나로 영어로 작성
+- 공공/행정 (Public_and_Administration)
+- 법률/규제 (Legal_and_Regulations)
+- 경제/금융 (Economics_and_Finance)
+- 기업/비즈니스 (Corporate_and_Business)
+- 마케팅/광고 (Marketing_and_Advertising)
+- 교육/학술 (Education_and_Academia)
+- 의료/보건 (Medical_and_Healthcare)
+- 교통/물류 (Transportation_and_Logistics)
+- 관광/여행 (Travel_and_Tourism)
+- 유통/상거래 (Retail_and_Commerce)
+- 외식/숙박 (Hospitality_and_Food_Service)
+- 오락/미디어 (Entertainment_and_Media)
+- 과학/기술 (Science_and_Technology)
+- 인문/예술 (Arts_and_Humanities)
+- 개인/생활 (Personal_and_Lifestyle)
+
+아래와 같은 JSON 형식으로 출력해 주세요:
+{{
+    "img_type": ["image type"],
+    "domain": ["domain"]
+}}
+"""
+
 def format_qa_generation_prompt(system_type: str, image_caption: str, num_questions: int) -> str:
-    """QA 생성 프롬프트 포맷팅"""
+    """Format QA generation prompt"""
     template = SYSTEM1_QA_TEMPLATE if system_type == 'system1' else SYSTEM2_QA_TEMPLATE
     return template.format(
         image_caption=image_caption,
-        num_questions=num_questions
+        num_questions=num_questions,
+        language=LANGUAGE
     )
 
 def format_qa_evaluation_prompt(system_type: str, qa_candidates: list) -> str:
-    """QA 평가 프롬프트 포맷팅"""
+    """Format QA evaluation prompt"""
     template = SYSTEM1_EVAL_TEMPLATE if system_type == 'system1' else SYSTEM2_EVAL_TEMPLATE
     
-    # QA 후보 목록을 문자열로 변환
+    # Convert QA candidates list to string
     qa_list_str = json.dumps(qa_candidates, ensure_ascii=False, indent=2)
     
-    return template.format(qa_candidates=qa_list_str) 
+    return template.format(
+        qa_candidates=qa_list_str,
+        language=LANGUAGE
+    ) 

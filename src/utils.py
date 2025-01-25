@@ -5,26 +5,26 @@ import os
 import json
 
 def check_resolution(image_path):
-    """이미지 해상도 체크 (최소 단축 384px)"""
+    """Check image resolution (minimum dimension: 384px)"""
     try:
         img = cv2.imdecode(np.fromfile(image_path, dtype=np.uint8), cv2.IMREAD_COLOR)
         if img is None:
-            print(f"이미지를 불러올 수 없습니다: {image_path}")
+            print(f"Failed to load image: {image_path}")
             return False
         
         height, width, _ = img.shape
         return min(height, width) > 384
     except Exception as e:
-        print(f"이미지 처리 중 오류 발생: {image_path}")
-        print(f"오류 내용: {str(e)}")
+        print(f"Error processing image: {image_path}")
+        print(f"Error details: {str(e)}")
         return False
 
 def check_letters_and_extract_text(image_path, ocr_model):
-    """OCR로 텍스트 길이 체크 (10~1000자) 및 텍스트 추출"""
+    """Check text length using OCR (10-1000 characters) and extract text"""
     try:
         result = ocr_model.ocr(image_path)[0]
         if not result:
-            print(f"OCR 처리 실패: {image_path}")
+            print(f"OCR processing failed: {image_path}")
             return False, ""
         
         valid_texts = [
@@ -43,11 +43,12 @@ def check_letters_and_extract_text(image_path, ocr_model):
             
         extracted_texts = []
         current_line_texts = []
+        # 인식된 텍스트의 평균 높이를 계산하여 줄 바꿈 기준으로 사용
         line_height = sum(text['box'][2][1] - text['box'][0][1] for text in valid_texts) / len(valid_texts)
-        
         current_line_y = valid_texts[0]['center_y']
         
         for text_info in valid_texts:
+            # 텍스트 높이가 평균 높이의 절반보다 크면 새로운 라인으로 간주
             if abs(text_info['center_y'] - current_line_y) > line_height/2:
                 extracted_texts.append("".join(current_line_texts))
                 extracted_texts.append("\n")
@@ -60,36 +61,39 @@ def check_letters_and_extract_text(image_path, ocr_model):
             extracted_texts.append("".join(current_line_texts))
         
         return True, "".join(extracted_texts)
-        
     except Exception as e:
-        print(f"OCR 처리 중 오류 발생: {image_path}")
-        print(f"오류 내용: {str(e)}")
+        print(f"Error during OCR processing: {image_path}")
+        print(f"Error details: {str(e)}")
         return False, ""
 
-def filter_images(dir_path, ocr_model):
-    """이미지 필터링 및 새 디렉토리에 복사"""
+def filter_images(source_dir_path, ocr_model):
+    """Filter images and copy to new directory"""
     try:
-        if not os.path.exists(dir_path):
-            print(f"디렉토리를 찾을 수 없습니다: {dir_path}")
+        if not os.path.exists(source_dir_path):
+            print(f"Directory not found: {source_dir_path}")
             return []
 
-        new_dir_path = dir_path + '_filtered'
-        if not os.path.exists(new_dir_path):
-            os.makedirs(new_dir_path)
+        new_dir_path = os.path.join(os.path.dirname(source_dir_path), 'valid_images')
+        invalid_dir_path = os.path.join(os.path.dirname(source_dir_path), 'invalid_images')
+        
+        for path in [new_dir_path, invalid_dir_path]:
+            if not os.path.exists(path):
+                os.makedirs(path)
 
         filtered_results = []
-        image_list = os.listdir(dir_path)
-        print(f"처리 중: {dir_path}...")
-        
+        image_list = [f for f in os.listdir(source_dir_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        print(f"Processing: {source_dir_path}...")
+
         for idx, image in enumerate(image_list):
             try:
-                print(f"{idx+1}/{len(image_list)}")
-                image_path = os.path.join(dir_path, image)
+                print(f"\r{idx+1}/{len(image_list)}", end='')
+                image_path = os.path.join(source_dir_path, image)
                 
                 if not os.path.isfile(image_path):
                     continue
 
-                if check_resolution(image_path):
+                is_valid_resolution = check_resolution(image_path)
+                if is_valid_resolution:
                     is_valid, extracted_text = check_letters_and_extract_text(image_path, ocr_model)
                     if is_valid:
                         new_image_path = os.path.join(new_dir_path, image)
@@ -98,22 +102,26 @@ def filter_images(dir_path, ocr_model):
                             'image_path': new_image_path,
                             'extracted_text': extracted_text
                         })
+                    else:
+                        invalid_image_path = os.path.join(invalid_dir_path, image)
+                        shutil.copy2(image_path, invalid_image_path)
+                else:
+                    invalid_image_path = os.path.join(invalid_dir_path, image)
+                    shutil.copy2(image_path, invalid_image_path)
             
             except Exception as e:
-                print(f"이미지 처리 중 오류 발생: {image}")
-                print(f"오류 내용: {str(e)}")
+                print(f"Error processing image: {image}")
+                print(f"Error details: {str(e)}")
                 continue
         
-        print(f"필터링된 이미지가 저장된 경로: {new_dir_path}")
-        return filtered_results
-    
+        return filtered_results    
     except Exception as e:
-        print(f"처리 중 오류 발생")
-        print(f"오류 내용: {str(e)}")
+        print(f"Error during processing")
+        print(f"Error details: {str(e)}")
         return []
 
 def aggregate_votes(eval_results, num_to_select):
-    """모델들의 순위를 가중치를 적용하여 집계"""
+    """Aggregate model rankings with weights"""
     if not eval_results:
         return None
         
@@ -131,11 +139,11 @@ def aggregate_votes(eval_results, num_to_select):
     return [qa for qa, _ in sorted_votes[:num_to_select]] if vote_counts else None
 
 def parse_ranking_response(response):
-    """평가 응답에서 순위 정보 추출"""
+    """Extract ranking information from evaluation response"""
     try:
         result = json.loads(response.replace('```json','').replace('```',''))
         return result.get('ranking', [])
     except Exception as e:
-        print(f"순위 응답 파싱 중 오류 발생: {e}")
+        print(f"Error parsing ranking response: {e}")
         print(response)
         return []

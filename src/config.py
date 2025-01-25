@@ -8,15 +8,18 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 CLAUDE_API_KEY = os.getenv('CLAUDE_API_KEY')
 
+# Language setting
+LANGUAGE = 'Korean'
+
 AVAILABLE_MODELS = {
     'gpt-4o': {
         'provider': 'openai',
-        'name': 'gpt-4o',
+        'name': 'gpt-4o-2024-11-20',
         'max_tokens': 1000,
     },
     'gpt-4o-mini': {
         'provider': 'openai',
-        'name': 'gpt-4o-mini',
+        'name': 'gpt-4o-mini-2024-07-18',
         'max_tokens': 1000,
     },
     'gemini-2.0-flash-exp': {
@@ -37,7 +40,7 @@ CAPTION_GENERATION = {
 QA_GENERATION = {
     'system1': {
         'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],  
-        'candidates_per_model': 3, 
+        'candidates_per_model': 2, 
     },
     'system2': {
         'models': ['gpt-4o', 'gemini-2.0-flash-exp'],  #

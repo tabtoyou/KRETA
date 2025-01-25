@@ -15,6 +15,12 @@ CLAUDE_API_KEY=xxx
 ```
 
 ## Usage
+VQA 데이터 생성
 ```
 python main.py
+```
+
+VQA 데이터 확인 및 개선
+```
+streamlit run eval.py
 ```

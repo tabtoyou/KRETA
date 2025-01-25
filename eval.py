@@ -9,6 +9,7 @@ import time
 import numpy as np
 from src.api_client import generate_response
 from src.prompts import HARD_NEGATIVE_OPTIONS_PROMPT
+import asyncio
 
 IMG_TYPE_LIST = ["Report", "Test_Paper", "Newspaper", "Manual", "Book_Page", "Magazine", "Brochure", "Book_Cover", "Illustrated_Books_and_Comics", 
                  "Chart_and_Plot", "Table", "Diagram", "Infographic", "Poster", "Banner", "Menu", "Packaging_Label", "Flyer", "Signage", "Store_Sign",
@@ -20,7 +21,8 @@ DOMAIN_LIST = ["Public_and_Administration", "Legal_and_Regulations", "Economics_
                "Marketing_and_Advertising", "Education_and_Academia", "Medical_and_Healthcare", "Transportation_and_Logistics", 
                "Travel_and_Tourism", "Retail_and_Commerce", "Hospitality_and_Food_Service", "Entertainment_and_Media", "Science_and_Technology", "Arts_and_Humanities", "Personal_and_Lifestyle"]
 
-def run_app(dataset_path: str):
+# run_app 함수를 async로 변경
+async def run_app(dataset_path: str):
     # 전체 폭 차지
     st.set_page_config(layout="wide")
 
@@ -252,7 +254,9 @@ def run_app(dataset_path: str):
                             correct_answer=current_candidate["answer"]
                         )
                         
-                        response = generate_response('openai',prompt,'gpt-4o-mini')
+                        # 직접 await 사용
+                        response = await generate_response('openai', prompt, 'gpt-4o-mini')
+                        
                         if response:
                             try:
                                 # JSON 응답 파싱
@@ -317,11 +321,9 @@ def run_app(dataset_path: str):
             if st.button("저장 후 종료"):
                 save_df_and_stop()
 
-
-def main():
-    # 이미 선택된 파일이 있으면 바로 실행
+async def main():
     if "selected_file" in st.session_state:
-        run_app(st.session_state.selected_file)
+        await run_app(st.session_state.selected_file)
         return
 
     # 없으면 파일 선택 UI (results 폴더 내 parquet 파일 목록)
@@ -340,4 +342,4 @@ def main():
         st.rerun()
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

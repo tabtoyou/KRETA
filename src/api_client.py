@@ -1,7 +1,7 @@
 import base64
 from functools import lru_cache
 from typing import Dict, Optional
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 import anthropic
 import google.generativeai as genai
 from .config import (
@@ -16,7 +16,7 @@ from .config import (
 
 @lru_cache()
 def get_required_providers() -> set:
-    """설정된 모델들의 provider 목록을 반환"""
+    """Returns a list of providers for configured models"""
     providers = set()
     all_models = (
         CAPTION_GENERATION.get('models', []) +
@@ -32,7 +32,7 @@ def get_required_providers() -> set:
     return providers
 
 class APIClients:
-    """API 클라이언트 관리 클래스"""
+    """API client management class"""
     _instance = None
     _clients: Dict[str, Optional[object]] = {
         'openai': None,
@@ -51,7 +51,7 @@ class APIClients:
         required_providers = get_required_providers()
         
         if 'openai' in required_providers and OPENAI_API_KEY:
-            self._clients['openai'] = OpenAI(api_key=OPENAI_API_KEY)
+            self._clients['openai'] = AsyncOpenAI(api_key=OPENAI_API_KEY)
             
         if 'google' in required_providers and GOOGLE_API_KEY:
             genai.configure(api_key=GOOGLE_API_KEY)
@@ -68,19 +68,19 @@ class APIClients:
 api_clients = APIClients()
 
 def get_model_config(model_name):
-    """모델 설정 가져오기"""
+    """Get model configuration"""
     if model_name not in AVAILABLE_MODELS:
-        raise ValueError(f"지원하지 않는 모델입니다: {model_name}")
+        raise ValueError(f"Unsupported model: {model_name}")
     return AVAILABLE_MODELS[model_name]
 
-def generate_vision_response(provider, image_path, prompt, model_name):
-    """OpenAI, Gemini, Anthropic Vision API를 사용하여 이미지 기반 응답 생성"""
+async def generate_vision_response(provider, image_path, prompt, model_name):
+    """Generate image-based response"""
     try:
         model_config = get_model_config(model_name)
         with open(image_path, "rb") as image_file:
             base64_image = base64.b64encode(image_file.read()).decode('utf-8')
             if provider == 'openai':
-                response = api_clients.get_client('openai').chat.completions.create(
+                response = await api_clients.get_client('openai').chat.completions.create(
                     model=model_config['name'],
                     messages=[{
                         "role": "user",
@@ -131,15 +131,15 @@ def generate_vision_response(provider, image_path, prompt, model_name):
                 )
                 return message.content[0].text
     except Exception as e:
-        print(f"{provider} Vision API 응답 생성 중 오류 발생: {e}")
+        print(f"Error generating {provider} Vision API response: {e}")
         return None
     
-def generate_response(provider, prompt, model_name=None):
-    """OpenAI, Gemini, Anthropic API를 사용하여 텍스트 기반 응답 생성"""
+async def generate_response(provider, prompt, model_name=None):
+    """Generate text-based response"""
     try:
         model_config = get_model_config(model_name)
         if provider == 'openai':
-            response = api_clients.get_client('openai').chat.completions.create(
+            response = await api_clients.get_client('openai').chat.completions.create(
                 model=model_config['name'],
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
@@ -158,34 +158,50 @@ def generate_response(provider, prompt, model_name=None):
             )
             return message.content[0].text
     except Exception as e:
-        print(f"{provider} API 응답 생성 중 오류 발생: {e}")
+        print(f"Error generating {provider} API response: {e}")
         return None
 
-def get_model_response(model_name: str, prompt: str, image_path: str = None) -> Optional[str]:
-    """모델별 응답 생성 함수
-    
-    Args:
-        model_name: 사용할 모델 이름
-        prompt: 프롬프트 텍스트
-        image_path: 이미지 경로 (이미지 관련 요청시에만 사용)
-    
-    Returns:
-        생성된 응답 텍스트 또는 None
-    """
+async def generate_response(provider, prompt, model_name=None):
+    """Generate text-based response"""
+    try:
+        model_config = get_model_config(model_name)
+        if provider == 'openai':
+            response = await api_clients.get_client('openai').chat.completions.create(
+                model=model_config['name'],
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=model_config.get('max_tokens', 1000),
+            )
+            return response.choices[0].message.content
+        elif provider == 'google':
+            model = api_clients.get_client('google').GenerativeModel(model_name=model_config['name'])
+            response = model.generate_content(prompt)
+            return response.text
+        elif provider == 'anthropic':
+            message = api_clients.get_client('anthropic').messages.create(
+                model=model_config['name'],
+                max_tokens=model_config.get('max_tokens', 1000),
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return message.content[0].text
+    except Exception as e:
+        print(f"Error generating {provider} API response: {e}")
+        return None
+
+async def get_model_response(model_name: str, prompt: str, image_path: str = None) -> Optional[str]:
+    """Generate model response"""
     try:
         model_config = get_model_config(model_name)
         provider = model_config['provider']
         
-        # 이미지가 포함된 요청인 경우
         if image_path:
             if provider in ['openai', 'google', 'anthropic']:
-                return generate_vision_response(provider, image_path, prompt, model_name)
-        # 텍스트만 있는 요청인 경우
+                return await generate_vision_response(provider, image_path, prompt, model_name)
         else:
             if provider in ['openai', 'google', 'anthropic']:
-                return generate_response(provider, prompt, model_name)
+                return await generate_response(provider, prompt, model_name)
         return None
         
     except Exception as e:
-        print(f"모델 응답 생성 중 오류 발생: {e}")
+        print(f"Error generating model response: {e}")
         return None

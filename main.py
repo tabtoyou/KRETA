@@ -290,7 +290,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='TVQA Generator')
     parser.add_argument('-d', '--input_directory', type=str, required=False, default='./data/images')
     parser.add_argument('-r', '--output_directory', type=str, required=False, default='./results')
-    parser.add_argument('-s', '--save_interval', type=int, required=False, default=2,
+    parser.add_argument('-s', '--save_interval', type=int, required=False, default=30,
                       help='중간 저장 간격 (처리된 이미지 수 기준)')
     args = parser.parse_args()
     

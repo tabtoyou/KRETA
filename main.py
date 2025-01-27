@@ -21,6 +21,10 @@ from src.config import (
 )
 from src.prompts import CAPTION_PROMPT, format_qa_generation_prompt, format_qa_evaluation_prompt, HARD_NEGATIVE_OPTIONS_PROMPT, DOMAIN_AND_TYPE_PROMPT
 from typing import Dict, List, Optional
+from tqdm import tqdm
+import gc 
+import logging
+from datetime import datetime
 
 class TVQAGenerator:
     def __init__(self):
@@ -33,6 +37,26 @@ class TVQAGenerator:
             show_log=False
         )
         self.collected_data = []
+        
+        # 로그 설정 수정
+        log_filename = f'log_{datetime.now().strftime("%m%d")}.txt'
+        log_file = open(log_filename, 'a', encoding='utf-8')
+        file_handler = logging.FileHandler(log_filename, mode='a', encoding='utf-8')
+        console_handler = logging.StreamHandler()
+        
+        # 로그 포맷 설정
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
+        
+        # 로거 설정
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
+        
+        # 핸들러에 즉시 플러시 설정
+        file_handler.flush = lambda: True
 
     async def generate_image_caption(self, image_path):
         """Generate detailed image caption"""
@@ -110,16 +134,15 @@ class TVQAGenerator:
             ]
             responses = await asyncio.gather(*eval_tasks)
 
-            print("multi_models_evaluation: ", responses)
+            self.logger.info(f"multi_models_evaluation: {responses}")
             
             for model_name, response in zip(QA_EVALUATION[system_type]['models'], responses):
                 if response:
                     evaluations[system_type][model_name] = parse_ranking_response(response)
         
-        print('evaluation 1: ', evaluations['system1'])
-        print('evaluation 2: ', evaluations['system2'])
+        self.logger.info(f'evaluation 1: {evaluations["system1"]}')
+        self.logger.info(f'evaluation 2: {evaluations["system2"]}')
         
-        # Aggregate voting results
         return {
             'system1': aggregate_votes(evaluations['system1'], QA_EVALUATION['system1']['num_to_select']),
             'system2': aggregate_votes(evaluations['system2'], QA_EVALUATION['system1']['num_to_select'])
@@ -223,75 +246,98 @@ class TVQAGenerator:
         
         return True
 
-    async def generate_qa_from_image_directory(self, dir_path, output_dir, save_interval=20):
+    async def generate_qa_from_image_directory(self, dir_path, output_dir, batch_size=30):
         """Generate QA dataset from image directory"""
-        filtered_results = filter_images(dir_path, self.ocr_model)
+        # filtered_results = filter_images(dir_path, self.ocr_model)  # 주석 처리
         os.makedirs(output_dir, exist_ok=True)
         
         processed_dir = os.path.join(os.path.dirname(dir_path), 'processed')
         os.makedirs(processed_dir, exist_ok=True)
         
-        processed_count = 0
+        # 디렉토리에서 이미지 파일 목록 가져오기
+        image_files = [f for f in os.listdir(dir_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
         
-        for item in filtered_results:
-            print(f"\n진행 상황: {processed_count + 1}/{len(filtered_results)} 이미지 처리 중...")
-            try:
-                image_caption = await self.generate_image_caption(item['image_path'])
-                print("image_caption: ", image_caption)
-
-                qa_candidates = await self.generate_qa_candidates(image_caption)
-                print("qa_candidates: ", qa_candidates)
-                evaluated_qa = await self.multi_models_evaluation(qa_candidates, item['image_path'])
-                print("evaluated_qa: ", evaluated_qa)
+        processed_count = 0
+        batch_count = 0
+        
+        for i in tqdm(range(0, len(image_files), batch_size), desc="Processing batches"):
+            batch_count += 1
+            batch_files = image_files[i:i + batch_size]
+            batch_success = 0
+            
+            for image_file in batch_files:
+                image_path = os.path.join(dir_path, image_file)
+                self.logger.info(f"\n{'='*50}")
+                self.logger.info(f"Starting Image Processing [{processed_count + 1}/{len(image_files)}]")
+                self.logger.info(f"Image Path: {image_path}")
+                self.logger.info(f"{'-'*50}")
                 
-                qa_candidates = await self.generate_options_and_type(
-                    qa_candidates,
-                    evaluated_qa,
-                    item['image_path']
-                )
-                
-                
-                self.save_final_qa_dataset(
-                    evaluated_qa, 
-                    qa_candidates, 
-                    item['image_path'],
-                    image_caption
-                )
-                
-                image_filename = os.path.basename(item['image_path'])
-                processed_path = os.path.join(processed_dir, image_filename)
-
-                # 파일 이동 및 원본 삭제
                 try:
-                    os.rename(item['image_path'], processed_path)
-                except Exception as move_error:
-                    print(f"Error moving file to processed directory: {str(move_error)}")
-                    continue
-                
-                processed_count += 1
-                
-                if processed_count % save_interval == 0:
-                    temp_df = pd.DataFrame(self.collected_data)
-                    temp_output_path = os.path.join(output_dir, f'KoTextVQA_temp_{processed_count}.parquet')
-                    temp_df.to_parquet(temp_output_path, compression='gzip')
-                    print(f"Intermediate save completed: {processed_count} data items processed.")
+                    image_caption = await self.generate_image_caption(image_path)
+                    self.logger.info(f"[Image {processed_count + 1}] Caption Generation Result:\n{image_caption}")
                     
-            except Exception as e:
-                print(f"Error occurred while processing image ({item['image_path']}): {str(e)}")
-                continue
+                    qa_candidates = await self.generate_qa_candidates(image_caption)
+                    self.logger.info(f"[Image {processed_count + 1}] QA Candidates Generation Result:\n{qa_candidates}")
+                    
+                    evaluated_qa = await self.multi_models_evaluation(qa_candidates, image_path)
+                    self.logger.info(f"[Image {processed_count + 1}] QA Evaluation Result:\n{evaluated_qa}")
+                    
+                    qa_candidates = await self.generate_options_and_type(
+                        qa_candidates,
+                        evaluated_qa,
+                        image_path
+                    )
+                    
+                    self.save_final_qa_dataset(
+                        evaluated_qa, 
+                        qa_candidates, 
+                        image_path,
+                        image_caption
+                    )
+                    
+                    image_filename = os.path.basename(image_path)
+                    processed_path = os.path.join(processed_dir, image_filename)
 
-        if self.collected_data:
-            df = pd.DataFrame(self.collected_data)
-            output_path = os.path.join(output_dir, f'KoTextVQA_{time.strftime("%m%d%H%M")}.parquet')
-            df.to_parquet(output_path, compression='gzip')
-            print(f"Total {len(self.collected_data)} data items have been saved.")
+                    try:
+                        os.rename(image_path, processed_path)
+                    except Exception as move_error:
+                        print(f"Error moving file to processed directory: {str(move_error)}")
+                        continue
+                    
+                    processed_count += 1
+                    batch_success += 1
+                    
+                except Exception as e:
+                    print(f"Error occurred while processing image ({image_path}): {str(e)}")
+                    continue
+
+            # 배치 처리 후 데이터 저장
+            if self.collected_data:
+                try:
+                    df = pd.DataFrame(self.collected_data)
+                    output_path = os.path.join(
+                        output_dir, 
+                        f'KoTextVQA_batch_{batch_count}_{time.strftime("%m%d%H%M")}_{batch_success}items.parquet'
+                    )
+                    df.to_parquet(output_path, compression='gzip')
+                    print(f"Batch {batch_count} processed and saved: {batch_success}/{len(batch_files)} items successful")
+                    
+                    # 메모리 정리
+                    self.collected_data.clear()
+                    del df
+                    gc.collect()  # 명시적 가비지 컬렉션
+                    
+                except Exception as save_error:
+                    print(f"Error saving batch {batch_count}: {str(save_error)}")
+                    # 에러가 발생해도 메모리는 정리
+                    self.collected_data.clear()
+                    gc.collect()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='TVQA Generator')
     parser.add_argument('-d', '--input_directory', type=str, required=False, default='./data/images')
     parser.add_argument('-r', '--output_directory', type=str, required=False, default='./results')
-    parser.add_argument('-s', '--save_interval', type=int, required=False, default=30,
-                      help='중간 저장 간격 (처리된 이미지 수 기준)')
+    parser.add_argument('-s', '--save_batch', type=int, required=False, default=30)
     args = parser.parse_args()
     
     generator = TVQAGenerator()
@@ -300,5 +346,5 @@ if __name__ == "__main__":
     asyncio.run(generator.generate_qa_from_image_directory(
         args.input_directory, 
         args.output_directory,
-        args.save_interval
+        args.save_batch
     ))

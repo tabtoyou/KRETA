@@ -15,11 +15,11 @@ IMG_TYPE_LIST = ["Report", "Test_Paper", "Newspaper", "Manual", "Book_Page", "Ma
                  "Chart_and_Plot", "Table", "Diagram", "Infographic", "Poster", "Banner", "Menu", "Packaging_Label", "Flyer", "Signage", "Store_Sign",
                  "Product_Detail", "Public_Signs", "Street_Signs", "Mural_and_Graffiti", "Mobile_Screenshot", "PC_Screenshot", "Presentation_Slides", 
                  "Video_Thumbnail", "Video_Scene", "Receipts_and_Invoices", "Contracts_Documents", "Certificates", "Handwriting", 
-                 "Tickets_and_Boarding_Passes"]
+                 "Tickets_and_Boarding_Passes", ""]
 
 DOMAIN_LIST = ["Public_and_Administration", "Legal_and_Regulations", "Economics_and_Finance", "Corporate_and_Business", 
                "Marketing_and_Advertising", "Education_and_Academia", "Medical_and_Healthcare", "Transportation_and_Logistics", 
-               "Travel_and_Tourism", "Retail_and_Commerce", "Hospitality_and_Food_Service", "Entertainment_and_Media", "Science_and_Technology", "Arts_and_Humanities", "Personal_and_Lifestyle"]
+               "Travel_and_Tourism", "Retail_and_Commerce", "Hospitality_and_Food_Service", "Entertainment_and_Media", "Science_and_Technology", "Arts_and_Humanities", "Personal_and_Lifestyle", ""]
 
 # run_app 함수를 async로 변경
 async def run_app(dataset_path: str):
@@ -55,8 +55,8 @@ async def run_app(dataset_path: str):
         # 수정된 내용이 있는지 확인
         if st.session_state.selected_qa_dict:
             # 새로운 파일명 생성 (원본파일명_MMDDHHMM.parquet)
-            base_path = dataset_path.split('_')[0]
-            new_path = f"{base_path}_{time.strftime('%m%d%H%M')}.parquet"
+            base_path = dataset_path.split('.')[0]
+            new_path = f"{base_path}_savebutton_{time.strftime('%m%d%H%M')}.parquet"
 
             df.to_parquet(new_path)
             st.markdown(f"새로운 파일에 저장되었습니다: {new_path}")
@@ -68,6 +68,21 @@ async def run_app(dataset_path: str):
             del st.session_state[key]
         
         st.rerun()
+
+    def save_df_next():
+        for idx, sel_question in st.session_state.selected_qa_dict.items():
+            row = df.iloc[idx]
+            for candidate in row["candidates"]:
+                if candidate["question"] == sel_question:
+                    row["selected_qa"] = [candidate]
+                    break
+            df.iloc[idx] = row
+
+        if st.session_state.selected_qa_dict:
+            base_path = dataset_path.split('.')[0]
+            new_path = f"{base_path}_nextbutton.parquet"
+            df.to_parquet(new_path)
+            st.success(f"저장되었습니다: {new_path}")
 
     # 현재 행 삭제 함수
     def delete_current_row():
@@ -130,10 +145,9 @@ async def run_app(dataset_path: str):
                 st.session_state.index -= 1
                 st.rerun()
     with col2:
-        # "Next" 버튼을 누르면, update_current_qa 함수를 먼저 호출해 수정내용 반영
-        # 그 후 index+1 하고 rerun.
         if st.button("Next"):
             update_current_qa()
+            save_df_next()
             if st.session_state.index < len(df) - 1:
                 st.session_state.index += 1
             st.rerun()
@@ -289,12 +303,25 @@ async def run_app(dataset_path: str):
             # 3) 이미지 타입, 도메인 수정
             col_img_type, col_domain = st.columns(2)
 
+            # 유효하지 않은 이미지 타입 확인
+            invalid_types = [t for t in row["img_type"] if t not in IMG_TYPE_LIST]
+            if invalid_types:
+                st.markdown(
+                    f"""
+                    <script>
+                        alert("유효하지 않은 이미지 타입이 있습니다: {', '.join(invalid_types)}");
+                    </script>
+                    """,
+                    unsafe_allow_html=True
+                )
+
             def update_img_type():
-                row['img_type'] = st.session_state[f"img_type_{current_index}"]
+                current_img_types = st.session_state[f"img_type_{current_index}"]
+                row['img_type'] = current_img_types
                 df.iloc[current_index] = row
 
             with col_img_type:
-                default_img_types = row["img_type"]
+                default_img_types = [t for t in row["img_type"] if t in IMG_TYPE_LIST]
                 st.multiselect(
                     "Select image types",
                     options=IMG_TYPE_LIST,
@@ -303,12 +330,25 @@ async def run_app(dataset_path: str):
                     on_change=update_img_type
                 )
 
+            # 유효하지 않은 도메인 확인
+            invalid_domains = [d for d in row["domain"] if d not in DOMAIN_LIST]
+            if invalid_domains:
+                st.markdown(
+                    f"""
+                    <script>
+                        alert("유효하지 않은 도메인이 있습니다: {', '.join(invalid_domains)}");
+                    </script>
+                    """,
+                    unsafe_allow_html=True
+                )
+
             def update_domain():
-                row['domain'] = st.session_state[f"domain_{current_index}"]
+                current_domains = st.session_state[f"domain_{current_index}"]
+                row['domain'] = current_domains
                 df.iloc[current_index] = row
 
             with col_domain:
-                default_domains = row["domain"]
+                default_domains = [d for d in row["domain"] if d in DOMAIN_LIST]
                 st.multiselect(
                     "Select domains",
                     options=DOMAIN_LIST,

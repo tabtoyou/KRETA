@@ -58,7 +58,7 @@ QA_EVALUATION = {
         'num_to_select': 1, 
     },
     'system2': {
-        'models': ['gpt-4o', 'gemini-2.0-flash-exp'],
+        'models': ['gpt-4o-mini', 'gemini-2.0-flash-exp'],
         'num_to_select': 1,
     }
 }

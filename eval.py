@@ -70,24 +70,19 @@ async def run_app(dataset_path: str):
         st.rerun()
 
     def save_df_next():
-        try:
-            for idx, sel_question in st.session_state.selected_qa_dict.items():
-                row = df.iloc[idx]
-                for candidate in row["candidates"]:
-                    if candidate["question"] == sel_question:
-                        row["selected_qa"] = [candidate]
-                        break
-                df.iloc[idx] = row
+        for idx, sel_question in st.session_state.selected_qa_dict.items():
+            row = df.iloc[idx]
+            for candidate in row["candidates"]:
+                if candidate["question"] == sel_question:
+                    row["selected_qa"] = [candidate]
+                    break
+            df.iloc[idx] = row
 
-            if st.session_state.selected_qa_dict:
-                base_path = dataset_path.split('.')[0]
-                new_path = f"{base_path}_nextbutton.parquet"
-                df.to_parquet(new_path)
-                st.success(f"저장되었습니다: {new_path}")
-                return True
-        except Exception as e:
-            st.error(f"현재 행에 문제가 있습니다. Delete 버튼을 눌러 삭제하고 진행해주세요. 오류: {str(e)}")
-            return False
+        if st.session_state.selected_qa_dict:
+            base_path = dataset_path.split('.')[0]
+            new_path = f"{base_path}_nextbutton.parquet"
+            df.to_parquet(new_path)
+            st.success(f"저장되었습니다: {new_path}")
 
     # 현재 행 삭제 함수
     def delete_current_row():
@@ -97,16 +92,8 @@ async def run_app(dataset_path: str):
         # df를 session_state에서 직접 수정
         st.session_state.df = st.session_state.df.drop(index=st.session_state.df.index[st.session_state.index]).reset_index(drop=True)
         
-        # 마지막 행을 삭제한 경우 인덱스 조정
         if st.session_state.index >= len(st.session_state.df):
-            st.session_state.index = max(0, len(st.session_state.df) - 1)
-        
-        # 변경사항 즉시 저장
-        save_df = st.session_state.df.copy()
-        base_path = dataset_path.split('.')[0]
-        new_path = f"{base_path}_deletebutton.parquet"
-        save_df.to_parquet(new_path)
-        
+            st.session_state.index = len(st.session_state.df) - 1
         st.rerun()
 
     # --------------------------------------------------------------------------------
@@ -160,12 +147,12 @@ async def run_app(dataset_path: str):
     with col2:
         if st.button("Next"):
             update_current_qa()
-            if save_df_next():  # 저장 성공시에만 다음으로 이동
-                if st.session_state.index < len(df) - 1:
-                    st.session_state.index += 1
-                st.rerun()
+            save_df_next()
+            if st.session_state.index < len(df) - 1:
+                st.session_state.index += 1
+            st.rerun()
     with col3:
-        if st.button("🗑️ Delete", help="현재 행에 문제가 있다면 삭제합니다"):
+        if st.button("🗑️ Delete"):
             if st.session_state.index < len(df):
                 delete_current_row()
 

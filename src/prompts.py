@@ -183,7 +183,7 @@ HARD_NEGATIVE_OPTIONS_PROMPT = """주어진 이미지와 이미지에 대한 <�
 """
 
 # 이미지 타입 및 도메인 분류 프롬프트
-DOMAIN_AND_TYPE_PROMPT = """주어진 이미지를 참고하여 아래 2가지 작업들을 수행해 후 json 형식으로 출력해 주세요:
+DOMAIN_AND_TYPE_PROMPT = """이미지에 대해 자세히 설명한 <이미지 설명> 정보를 참고하여 아래 2가지 작업들을 수행해 후 json 형식으로 출력해 주세요:
 
 ### 1. 이미지 타입 분류
 이미지의 타입을 아래 카테고리 중 하나 이상을 선택해서 영어로 작성. 아래 카테고리에 포함되지 않는 경우 비어있는 [""]로 출력
@@ -240,6 +240,9 @@ DOMAIN_AND_TYPE_PROMPT = """주어진 이미지를 참고하여 아래 2가지 �
 - 인문/예술 (Arts_and_Humanities)
 - 개인/생활 (Personal_and_Lifestyle)
 
+<이미지 설명>
+{image_caption}
+
 아래와 같은 JSON 형식으로 출력해 주세요:
 {{
     "img_type": ["image type"],
@@ -254,6 +257,13 @@ def format_qa_generation_prompt(system_type: str, image_caption: str, num_questi
         image_caption=image_caption,
         num_questions=num_questions,
         language=LANGUAGE
+    )
+
+def format_type_domain_generation_prompt(image_caption: str) -> str:
+    """Format type and domain generation prompt"""
+    template = DOMAIN_AND_TYPE_PROMPT
+    return template.format(
+        image_caption=image_caption
     )
 
 def format_qa_evaluation_prompt(system_type: str, qa_candidates: list) -> str:

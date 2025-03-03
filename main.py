@@ -19,7 +19,7 @@ from src.config import (
     QA_EVALUATION,
     LANGUAGE
 )
-from src.prompts import CAPTION_PROMPT, format_qa_generation_prompt, format_qa_evaluation_prompt, HARD_NEGATIVE_OPTIONS_PROMPT, DOMAIN_AND_TYPE_PROMPT
+from src.prompts import CAPTION_PROMPT, format_qa_generation_prompt, format_qa_evaluation_prompt, HARD_NEGATIVE_OPTIONS_PROMPT, format_type_domain_generation_prompt
 from typing import Dict, List, Optional
 from tqdm import tqdm
 import gc 
@@ -148,14 +148,15 @@ class TVQAGenerator:
             'system2': aggregate_votes(evaluations['system2'], QA_EVALUATION['system1']['num_to_select'])
         }
 
-    async def generate_options_and_type(self, qa_candidates: Dict, evaluated_qa: Dict, image_path: str) -> Dict:
+    async def generate_options_and_type(self, qa_candidates: Dict, evaluated_qa: Dict, image_caption: str, image_path: str) -> Dict:
         """Generate options and type"""
         # Generate image type and domain information once
         type_domain_response = await get_model_response(
-            QA_EVALUATION['system2']['models'][0], 
-            DOMAIN_AND_TYPE_PROMPT, 
-            image_path
+            QA_EVALUATION['system1']['models'][0], 
+            format_type_domain_generation_prompt(image_caption)
         )
+        
+        self.logger.info(f"type_domain_response: {type_domain_response}")
         
         try:
             parsed_type_domain = json.loads(type_domain_response.replace('```json', '').replace('```', '').replace('\n','').strip())
@@ -285,6 +286,7 @@ class TVQAGenerator:
                     qa_candidates = await self.generate_options_and_type(
                         qa_candidates,
                         evaluated_qa,
+                        image_caption,
                         image_path
                     )
                     
@@ -337,7 +339,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='TVQA Generator')
     parser.add_argument('-d', '--input_directory', type=str, required=False, default='./data/images')
     parser.add_argument('-r', '--output_directory', type=str, required=False, default='./results')
-    parser.add_argument('-s', '--save_batch', type=int, required=False, default=30)
+    parser.add_argument('-s', '--save_batch', type=int, required=False, default=60)
     args = parser.parse_args()
     
     generator = TVQAGenerator()

@@ -1,7 +1,5 @@
 import os
-from paddleocr import PaddleOCR
 from src.utils import (
-    filter_images, 
     aggregate_votes,
     parse_ranking_response,
 )
@@ -17,7 +15,6 @@ from src.config import (
     CAPTION_GENERATION, 
     QA_GENERATION, 
     QA_EVALUATION,
-    LANGUAGE
 )
 from src.prompts import CAPTION_PROMPT, format_qa_generation_prompt, format_qa_evaluation_prompt, HARD_NEGATIVE_OPTIONS_PROMPT, format_type_domain_generation_prompt
 from typing import Dict, List, Optional
@@ -28,35 +25,19 @@ from datetime import datetime
 
 class TVQAGenerator:
     def __init__(self):
-        self.ocr_model = PaddleOCR(
-            use_angle_cls=True,
-            lang=LANGUAGE.lower(),
-            use_gpu=True,
-            det=True,
-            rec=True,
-            show_log=False
-        )
         self.collected_data = []
         
-        # 로그 설정 수정
-        log_filename = f'log_{datetime.now().strftime("%m%d")}.txt'
-        log_file = open(log_filename, 'a', encoding='utf-8')
-        file_handler = logging.FileHandler(log_filename, mode='a', encoding='utf-8')
-        console_handler = logging.StreamHandler()
-        
-        # 로그 포맷 설정
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        file_handler.setFormatter(formatter)
-        console_handler.setFormatter(formatter)
-        
-        # 로거 설정
+        # 로그 설정
+        log_filename = f'main_log_{datetime.now().strftime("%m%d")}.txt'
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_filename, mode='a', encoding='utf-8'),
+                logging.StreamHandler()
+            ]
+        )
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
-        
-        # 핸들러에 즉시 플러시 설정
-        file_handler.flush = lambda: True
 
     async def generate_image_caption(self, image_path):
         """Generate detailed image caption"""
@@ -249,7 +230,6 @@ class TVQAGenerator:
 
     async def generate_qa_from_image_directory(self, dir_path, output_dir, batch_size=30):
         """Generate QA dataset from image directory"""
-        # filtered_results = filter_images(dir_path, self.ocr_model)  # 주석 처리
         os.makedirs(output_dir, exist_ok=True)
         
         processed_dir = os.path.join(os.path.dirname(dir_path), 'processed')

@@ -1,26 +1,427 @@
 # KoTextVQA
-Text-Rich VQA for Non-English Language in Real-World Contexts
+KoTextVQA: A Benchmark for Understanding and Reasoning in Korean Text-Rich Visual Question Answering
 
-## Settings
-conda 혹은 virtualenv 이후
-```
-pip install -r requirements.txt
+<img src="./images/KoTextVQA_pipeline.png" width="95%" height="95%">
+
+> In real-world scenarios, text within images plays a crucial role in conveying information across various domains, including documents, everyday environments, and digital interfaces. Understanding text within its visual context remains a fundamental challenge for Vision-Language Models (VLMs), driving the development of text-rich Visual Question Answering (VQA) datasets and evaluation benchmarks. However, low-resource languages remain underexplored, lacking appropriate benchmarks for real-world applications. In the absence of such benchmarks, systematic evaluation becomes challenging, hindering iterative advancements in model performance and the refinement of fine-tuning strategies. To address this, we introduce KoTextVQA, a Korean \Text-rich VQA benchmark for comprehensive VLM evaluation. KoTextVQA enables an in-depth evaluation of visual text understanding (System 1) and reasoning (System 2) capabilities, while also supporting a multifaceted assessment across diverse image types and domains. Additionally, we release an automated VQA generation pipeline that leverages de facto standard models to efficiently construct benchmarks, enabling the scalable creation of high-quality datasets. While our benchmark is designed for Korean, the proposed methodology is highly adaptable and can be extended to other languages, supporting broader multilingual VLM research.
+
+|**[📖 Paper](#)** |**[📊 Dataset](#)** | **[🏆 Leaderboard](https://github.com/tabtoyou/KoTextVQA?tab=readme-ov-file#-leaderboard)** 
+
+## 🔥 News
+* **`2025.02.13`** 🌟 Gemini-2.0-flash achieves the best performance overall, Qwen2.5-VL and VARCO-VISION the best performance among open-source models!
+* **`2025.02.16`** 🌟 We are excited to launch KoTextVQA, a benchmark for understanding and reasoning in korean text-rich visual question answering. 🚀
+* **`2025.xx.xx`** 🌟 KoTextVQA is now supported in [VLMEvalKit](https://github.com/open-compass/VLMEvalKit).
+
+
+## 👀 Data
+<img src="./images/KoTextVQA.png" width="95%" height="95%">
+
+| [RawData (Google Drive)](#) | [Huggingface Dataset](#) |
+
+
+## 🔍 Project Setting
+```bash
+make setup # set environment (options: GPU)
+make help # print manual
 ```
 
-`.env` 생성 후 아래 key 값 입력
-```
-OPENAI_API_KEY=xxx
-GOOGLE_API_KEY=xxx
-CLAUDE_API_KEY=xxx
-```
-
-## Usage
-VQA 데이터 생성
-```
-python main.py
+## 🔮 Functions
+```bash
+make filter # filter out images
+make generate # create VQA (options: INPUT_DIR)
+make evaluate # evaluate VQA (options: INPUT_DIR, OUTPUT_DIR, SAVE_BATCH)
 ```
 
-VQA 데이터 확인 및 개선
-```
-streamlit run eval.py
+## 🏆 LeaderBoard
+
+<table style="width:90%;">
+    <tr>
+        <th>Models</th>
+        <td><b>Open-Source</b></td>
+        <td><b>Average</b></td>
+        <td><b>Gov.</b></td>
+        <td><b>Econ.</b></td>
+        <td><b>Mktg.</b></td>
+        <td><b>Comm.</b></td>
+        <td><b>Edu.</b></td>
+        <td><b>Med.</b></td>
+        <td><b>Tech.</b></td>
+        <td><b>Arts.</b></td>
+        <td><b>Transp.</b></td>
+        <td><b>Tour.</b></td>
+        <td><b>FnB.</b></td>
+        <td><b>Ent.</b></td>
+        <td><b>Life.</b></td>
+        <td><b>Sci.</b></td>
+        <td><b>Hist.</b></td>
+    </tr>
+    <!-- Closed Models -->
+    <tr>
+        <th align="left">GPT-4o</th>
+        <td align="middle">✘</td>
+        <td>84.6</td>
+        <td>93.5</td>
+        <td>92.3</td>
+        <td>97.2</td>
+        <td>90.3</td>
+        <td><b>96.7</b></td>
+        <td>91.1</td>
+        <td><b>96.7</b></td>
+        <td><b>100.0</b></td>
+        <td>84.4</td>
+        <td>93.5</td>
+        <td><b>93.6</b></td>
+        <td><b>97.0</b></td>
+        <td>95.1</td>
+        <td><b>44.1</b></td>
+        <td><b>93.3</b></td>
+    </tr>
+    <tr>
+        <th align="left">GPT-4o-mini</th>
+        <td align="middle">✘</td>
+        <td>73.3</td>
+        <td>82.4</td>
+        <td>82.7</td>
+        <td>85.5</td>
+        <td>84.4</td>
+        <td>87.4</td>
+        <td>83.3</td>
+        <td>80.4</td>
+        <td>89.2</td>
+        <td>80.2</td>
+        <td>84.3</td>
+        <td>81.4</td>
+        <td>86.3</td>
+        <td>87.3</td>
+        <td>30.3</td>
+        <td>45.0</td>
+    </tr>
+    <tr>
+        <th align="left">Gemini-2.0-flash</th>
+        <td align="middle">✘</td>
+        <td><b>85.4</b></td>
+        <td><b>95.1</b></td>
+        <td><b>95.2</b></td>
+        <td><b>99.3</b></td>
+        <td><b>96.1</b></td>
+        <td><b>96.7</b></td>
+        <td><b>92.2</b></td>
+        <td>93.5</td>
+        <td>98.8</td>
+        <td><b>90.4</b></td>
+        <td><b>98.1</b></td>
+        <td>93.2</td>
+        <td>95.2</td>
+        <td><b>96.6</b></td>
+        <td><b>44.1</b></td>
+        <td>78.3</td>
+    </tr>
+    <tr style="border-bottom: 1.5px solid">
+        <th align="left">Claude-3.5-Sonnet</th>
+        <td align="middle">✘</td>
+        <td>80.5</td>
+        <td>93.5</td>
+        <td>91.3</td>
+        <td>92.4</td>
+        <td>87.0</td>
+        <td>93.0</td>
+        <td>91.1</td>
+        <td>87.0</td>
+        <td>91.6</td>
+        <td>84.4</td>
+        <td>94.4</td>
+        <td>89.8</td>
+        <td>92.3</td>
+        <td>92.2</td>
+        <td>37.4</td>
+        <td>70.0</td>
+    </tr>
+    <!-- Open-Source Models -->
+    <tr>
+        <th align="left">LLaVA-OneVision (0.5B)</th>
+        <td align="middle">✅</td>
+        <td>42.3</td>
+        <td>51.8</td>
+        <td>48.1</td>
+        <td>47.6</td>
+        <td>44.8</td>
+        <td>39.5</td>
+        <td>50.0</td>
+        <td>44.6</td>
+        <td>40.9</td>
+        <td>49.7</td>
+        <td>51.9</td>
+        <td>41.7</td>
+        <td>44.6</td>
+        <td>46.1</td>
+        <td>28.0</td>
+        <td>31.7</td>
+    </tr>
+    <tr>
+        <th align="left">Deepseek-VL2-tiny (1B)</th>
+        <td align="middle">✅</td>
+        <td>48.8</td>
+        <td>57.1</td>
+        <td>55.8</td>
+        <td>63.4</td>
+        <td>58.4</td>
+        <td>51.2</td>
+        <td>57.8</td>
+        <td>57.6</td>
+        <td>45.8</td>
+        <td>54.5</td>
+        <td>58.3</td>
+        <td>43.9</td>
+        <td>47.0</td>
+        <td>54.4</td>
+        <td>30.5</td>
+        <td>31.7</td>
+    </tr>
+    <tr>
+        <th align="left">Deepseek-VL2-small (2.8B)</th>
+        <td align="middle">✅</td>
+        <td>53.3</td>
+        <td>61.6</td>
+        <td>63.5</td>
+        <td>66.9</td>
+        <td>63.0</td>
+        <td>57.2</td>
+        <td>64.4</td>
+        <td>68.5</td>
+        <td>50.6</td>
+        <td>59.9</td>
+        <td>63.0</td>
+        <td>48.9</td>
+        <td>56.0</td>
+        <td>57.4</td>
+        <td>30.8</td>
+        <td>36.7</td>
+    </tr>
+    <tr>
+        <th align="left">Qwen2.5-VL (3B)</th>
+        <td align="middle">✅</td>
+        <td><b>71.8</b></td>
+        <td>81.6</td>
+        <td><b>76.9</b></td>
+        <td>85.5</td>
+        <td>77.9</td>
+        <td><b>87.4</b></td>
+        <td><b>80.0</b></td>
+        <td><b>79.3</b></td>
+        <td><b>85.5</b></td>
+        <td><b>75.4</b></td>
+        <td><b>84.3</b></td>
+        <td><b>76.9</b></td>
+        <td><b>87.5</b></td>
+        <td>83.3</td>
+        <td><b>33.9</b></td>
+        <td>36.7</td>
+    </tr>
+    <tr>
+        <th align="left">Ovis1.6-Llama3.2 (3B)</th>
+        <td align="middle">✅</td>
+        <td>52.2</td>
+        <td>64.5</td>
+        <td>69.2</td>
+        <td>60.7</td>
+        <td>57.1</td>
+        <td>55.8</td>
+        <td>54.4</td>
+        <td>62.0</td>
+        <td>51.8</td>
+        <td>60.5</td>
+        <td>61.1</td>
+        <td>56.8</td>
+        <td>52.4</td>
+        <td>49.5</td>
+        <td>30.5</td>
+        <td>31.7</td>
+    </tr>
+    <tr>
+        <th align="left">InternVL2.5 (4B)</th>
+        <td align="middle">✅</td>
+        <td>70.7</td>
+        <td><b>82.0</b></td>
+        <td><b>76.9</b></td>
+        <td><b>87.6</b></td>
+        <td><b>83.1</b></td>
+        <td>83.7</td>
+        <td>78.9</td>
+        <td><b>79.3</b></td>
+        <td>79.5</td>
+        <td>75.4</td>
+        <td>77.8</td>
+        <td>69.3</td>
+        <td>81.0</td>
+        <td><b>86.3</b></td>
+        <td><b>33.9</b></td>
+        <td><b>46.7</b></td>
+    </tr>
+    <tr>
+        <th align="left">Phi-3.5-Vision (4.2B)</th>
+        <td align="middle">✅</td>
+        <td>42.6</td>
+        <td>53.5</td>
+        <td>55.8</td>
+        <td>40.0</td>
+        <td>49.4</td>
+        <td>43.3</td>
+        <td>40.0</td>
+        <td>53.3</td>
+        <td>50.6</td>
+        <td>44.3</td>
+        <td>46.3</td>
+        <td>42.8</td>
+        <td>43.5</td>
+        <td>44.6</td>
+        <td>27.6</td>
+        <td>36.7</td>
+    </tr>
+    <tr>
+        <th align="left">LLaVA-OneVision (7B)</th>
+        <td align="middle">✅</td>
+        <td>54.0</td>
+        <td>64.1</td>
+        <td>63.5</td>
+        <td>63.4</td>
+        <td>63.6</td>
+        <td>58.6</td>
+        <td>55.6</td>
+        <td>64.1</td>
+        <td>45.8</td>
+        <td>68.3</td>
+        <td>65.7</td>
+        <td>55.3</td>
+        <td>55.4</td>
+        <td>55.9</td>
+        <td>30.8</td>
+        <td>33.3</td>
+    </tr>
+    <tr>
+        <th align="left">Qwen2.5-VL (7B)</th>
+        <td align="middle">✅</td>
+        <td>68.5</td>
+        <td>80.0</td>
+        <td>77.9</td>
+        <td><b>85.5</b></td>
+        <td>81.2</td>
+        <td><b>87.4</b></td>
+        <td>76.7</td>
+        <td>75.0</td>
+        <td><b>89.2</b></td>
+        <td>77.8</td>
+        <td>82.4</td>
+        <td><b>77.7</b></td>
+        <td><b>86.3</b></td>
+        <td><b>85.8</b></td>
+        <td>15.1</td>
+        <td>36.7</td>
+    </tr>
+    <tr>
+        <th align="left">InternVL2.5 (8B)</th>
+        <td align="middle">✅</td>
+        <td>70.8</td>
+        <td><b>81.6</b></td>
+        <td>76.9</td>
+        <td><b>85.5</b></td>
+        <td>81.8</td>
+        <td>83.7</td>
+        <td>81.1</td>
+        <td>77.2</td>
+        <td>78.3</td>
+        <td>76.0</td>
+        <td><b>83.3</b></td>
+        <td>74.2</td>
+        <td>78.6</td>
+        <td><b>85.8</b></td>
+        <td><b>34.1</b></td>
+        <td><b>38.3</b></td>
+    </tr>
+    <tr>
+        <th align="left">MiniCPM-V-2.6 (8B)</th>
+        <td align="middle">✅</td>
+        <td>41.0</td>
+        <td>50.2</td>
+        <td>54.8</td>
+        <td>50.3</td>
+        <td>53.2</td>
+        <td>44.7</td>
+        <td>41.1</td>
+        <td>52.2</td>
+        <td>33.7</td>
+        <td>43.7</td>
+        <td>48.1</td>
+        <td>43.6</td>
+        <td>45.8</td>
+        <td>46.1</td>
+        <td>18.2</td>
+        <td>25.0</td>
+    </tr>
+    <tr>
+        <th align="left">MiniCPM-o-2.6 (8B)</th>
+        <td align="middle">✅</td>
+        <td>64.3</td>
+        <td>75.9</td>
+        <td>83.7</td>
+        <td>79.3</td>
+        <td>75.9</td>
+        <td>76.7</td>
+        <td>65.6</td>
+        <td>75.0</td>
+        <td>73.5</td>
+        <td>69.5</td>
+        <td>79.6</td>
+        <td>67.8</td>
+        <td>77.4</td>
+        <td>74.0</td>
+        <td>25.5</td>
+        <td>25.0</td>
+    </tr>
+    <tr>
+        <th align="left">Ovis1.6-Gemma2 (9B)</th>
+        <td align="middle">✅</td>
+        <td>58.4</td>
+        <td>64.1</td>
+        <td>69.2</td>
+        <td>71.0</td>
+        <td>72.7</td>
+        <td>60.9</td>
+        <td>71.1</td>
+        <td>67.4</td>
+        <td>53.0</td>
+        <td>68.9</td>
+        <td>75.9</td>
+        <td>65.2</td>
+        <td>58.9</td>
+        <td>63.2</td>
+        <td>30.5</td>
+        <td>28.3</td>
+    </tr>
+    <tr>
+        <th align="left">VARCO-VISION (14B)</th>
+        <td align="middle">✅</td>
+        <td><b>72.3</b></td>
+        <td><b>81.6</b></td>
+        <td><b>87.5</b></td>
+        <td>83.4</td>
+        <td><b>83.1</b></td>
+        <td>84.2</td>
+        <td><b>86.7</b></td>
+        <td><b>84.8</b></td>
+        <td>79.5</td>
+        <td><b>82.6</b></td>
+        <td><b>83.3</b></td>
+        <td>76.1</td>
+        <td>81.5</td>
+        <td>85.3</td>
+        <td>33.7</td>
+        <td>31.7</td>
+    </tr>
+</table>
+
+
+## 🖋 Citation
+If you wish to refer to the baseline results published here, please use the following BibTeX entries:
+```BibTeX
+TBD
 ```

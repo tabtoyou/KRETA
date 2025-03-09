@@ -29,7 +29,7 @@ make help # print manual
 ```bash
 make filter # filter out images
 make generate # create VQA (options: INPUT_DIR)
-make evaluate # evaluate VQA (options: INPUT_DIR, OUTPUT_DIR, SAVE_BATCH)
+make inspect # inspect VQA (options: INPUT_DIR, OUTPUT_DIR, SAVE_BATCH)
 ```
 
 ## 🏆 LeaderBoard

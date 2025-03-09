@@ -58,9 +58,9 @@ generate:
 	@$(ACTIVATE) $(PYTHON_PATH) main.py --input_directory $(INPUT_DIR) --output_directory $(OUTPUT_DIR) --save_batch $(SAVE_BATCH)
 
 # Run evaluation tool
-evaluate:
+inspect:
 	@echo "Running evaluation tool..."
-	@$(ACTIVATE) $(PYTHON_PATH) -m streamlit run eval.py
+	@$(ACTIVATE) $(PYTHON_PATH) -m streamlit run vqa_inspect.py
 
 %:
 	@:

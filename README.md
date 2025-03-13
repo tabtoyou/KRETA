@@ -1,6 +1,6 @@
 # KoTextVQA
 
-| [📖 Paper](#) | [📊 Dataset](https://huggingface.co/datasets/tabtoyou/KoTextVQA) | [🏆 Leaderboard](https://github.com/tabtoyou/KoTextVQA?tab=readme-ov-file#-leaderboard) |
+| [📖 Paper](#) | [🤗 Dataset](https://huggingface.co/datasets/tabtoyou/KoTextVQA) | [🏆 Leaderboard](https://github.com/tabtoyou/KoTextVQA?tab=readme-ov-file#-leaderboard) |
 
 KoTextVQA: A Benchmark for Understanding and Reasoning in Korean Text-Rich Visual Question Answering
 
@@ -19,24 +19,62 @@ KoTextVQA: A Benchmark for Understanding and Reasoning in Korean Text-Rich Visua
 
 
 ## Data
-
+[🤗 KoTextVQA Dataset](https://huggingface.co/datasets/tabtoyou/KoTextVQA)
 <p align="center">
   <img src="./images/KoTextVQA.png" width="90%" height="90%">
 </p>
 
 
-## Setting
+## Settings
 ```bash
 make setup # set environment (options: GPU)
-make help # print manual
+make help  # print manual
 ```
 
-## Run
+## Text-Rich VQA Generation
 ```bash
-make filter # 1) filter out low-quality images
-make generate # 2) automatically generate VQA using a 4-stage pipeline  (options: INPUT_DIR)
-make editor # 3) refine VQA with streamlit-based editor (options: INPUT_DIR, OUTPUT_DIR, SAVE_BATCH)
+make filter   # 1) filter out low-quality images with OCR Model
+make generate # 2) automatically generate VQA using a 4-stage pipeline (options: INPUT_DIR)
+make editor   # 3) refine VQA with streamlit-based editor (options: INPUT_DIR, OUTPUT_DIR, SAVE_BATCH)```
 ```
+
+## Evaluation
+`eval` folder contains inference and evaluate scripts for the KoTextVQA.
+
+1. `infer_xxx.py`: For model inference
+2. `evaluate.py`: For evaluating inference results
+
+### 1. Model Inference Script: `infer_xxx.py`
+
+This script loads a specified model and performs inference. To run the script, use the following steps:
+
+```bash
+cd eval
+python infer/infer_gpt.py [MODEL_NAME] [SETTING]
+```
+
+- **`[MODEL_NAME]`**: Specify the model's name (e.g., `gpt-4o-mini`).
+- **`[SETTING]`**: Specify the prompt setting (e.g., `default`).
+
+Example:
+
+```bash
+python infer/infer_gpt.py gpt-4o-mini default
+```
+
+### 2. Evaluation Script: `evaluate.py`
+
+This script evaluates the results generated from the inference step. To run the evaluation, use the following command:
+
+```bash
+cd eval
+python evaluate.py
+```
+
+Once executed, the script will:
+- Load the inference results from the `./output` directory.
+- Generate and display the evaluation report in the console.
+- Save the evaluation report to the `./output` directory.
 
 ## 🏆 LeaderBoard
 

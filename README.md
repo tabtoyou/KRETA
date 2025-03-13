@@ -502,7 +502,7 @@ Once executed, the script will:
 </table>
 
 
-## 🖋 Citation
+## Citation
 If you wish to refer to the baseline results published here, please use the following BibTeX entries:
 ```BibTeX
 TBD

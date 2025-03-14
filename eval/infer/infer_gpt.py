@@ -7,6 +7,7 @@ import sys
 from openai import OpenAI
 from concurrent.futures import ThreadPoolExecutor
 from datasets import load_dataset
+from dotenv import load_dotenv
 
 if len(sys.argv) == 3:
     MODEL = sys.argv[1]
@@ -16,7 +17,9 @@ else:
     MODEL = 'gpt-4o-mini'
     SETTING = 'default'
 
-API_KEY = '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'
+load_dotenv()
+
+API_KEY = os.getenv('OPENAI_API_KEY') 
 WORKERS = 20
 NUM = 2577
 

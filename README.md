@@ -7,7 +7,6 @@ KoTextVQA: A Benchmark for Understanding and Reasoning in Korean Text-Rich Visua
 ## 🔥 News
 * **`2025.TBA`** 🌟 KoTextVQA paper coming soon. [VLMEvalKit](https://github.com/open-compass/VLMEvalKit) support in preparation.
 * **`2025.03.21`** 🌟 Evaluation code & Text-rich VQA dataset generation pipeline released! 🚀
-* **`2025.02.13`** 🌟 Gemini-2.0-flash achieves the best performance overall, with VARCO-VISION leading among open-source models.
 
 ## Introduction
 
@@ -514,4 +513,6 @@ If you wish to refer to the baseline results published here, please use the foll
 ```
 
 ## Acknowledgement
-Evaluation codes are adapted from [MMMU](https://github.com/MMMU-Benchmark/MMMU)/[MMMU-Pro](https://github.com/MMMU-Benchmark/MMMU/tree/main/mmmu-pro). We thank the original authors for sharing their implementation.
+- Evaluation codes are adapted from [MMMU](https://github.com/MMMU-Benchmark/MMMU)/[MMMU-Pro](https://github.com/MMMU-Benchmark/MMMU/tree/main/mmmu-pro). We thank the original authors for sharing their implementation.
+
+- We conducted this project at [AttentionX](https://www.linkedin.com/company/attentionx/) with support from [Waddle](https://www.gentooai.com/) and [VRCREW](https://www.linkedin.com/company/vrcrewinc/posts/?feedView=all). We sincerely appreciate their support.

@@ -1,0 +1,15 @@
+anthropic
+google-generativeai
+openai>=1.60.1
+datasets
+numpy
+pandas
+pyarrow
+opencv-python==4.10.0.84
+pillow==10.4.0
+paddleocr==2.9.1
+paddlepaddle
+google-api-python-client
+python-dotenv==1.0.1
+streamlit
+setuptools

@@ -515,4 +515,4 @@ If you wish to refer to the baseline results published here, please use the foll
 ## Acknowledgement
 - Evaluation codes are adapted from [MMMU](https://github.com/MMMU-Benchmark/MMMU)/[MMMU-Pro](https://github.com/MMMU-Benchmark/MMMU/tree/main/mmmu-pro). We thank the original authors for sharing their implementation.
 
-- We conducted this project at [AttentionX](attentionx.github.io) with support from [Waddle](https://www.gentooai.com/) and [VRCREW](https://www.linkedin.com/company/vrcrewinc/posts/?feedView=all). We sincerely appreciate their support.
+- We conducted this project at [AttentionX](https://attentionx.github.io/) with support from [Waddle](https://www.gentooai.com/) and [VRCREW](https://www.linkedin.com/company/vrcrewinc/posts/?feedView=all). We sincerely appreciate their support.

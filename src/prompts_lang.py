@@ -247,6 +247,22 @@ Please output in the following JSON format:
 }}
 """
 
+SYSTEM_EVAL_TEMPLATE_SIMPLE = """Please evaluate the following image-related Q&A candidates and rank them in order.
+
+- Write your reasoning for each decision under “reasoning,” and list the rankings under “ranking.”
+- Assign a rank number to each QA candidate from highest quality (1) to lowest quality (n).
+
+<Output format>
+{"reasoning": "Your justification for the ranking", "ranking": [#1, #2, #3, …, #n]}
+
+<Example>
+{"reasoning": "Question 1 requires no text recognition, so it ranks lowest. …", "ranking": [2, 3, 1, …, n]}
+
+<QA Candidates>
+{qa_candidates}
+
+“””
+
 
 def format_qa_generation_prompt(
     system_type: str, image_caption: str, num_questions: int

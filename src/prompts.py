@@ -251,6 +251,20 @@ DOMAIN_AND_TYPE_PROMPT = """이미지에 대해 자세히 설명한 <이미지 �
 }}
 """
 
+SYSTEM_EVAL_TEMPLATE_SIMPLE = """이미지와 관련된 질의응답 <QA 후보>를 평가하고, 순위를 결정해 주세요.
+
+- 아래 <응답 형식>에 맞춰 reasoning에 판단 근거를 작성하고, ranking에 순위를 답하세요.
+- 각 QA를 품질 순으로 평가하여 1위부터 순서대로 번호를 매기세요.
+
+<응답 형식>
+{{"reasoning": "순위 판단 근거", "ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
+
+<응답 예시>
+{{"reasoning": "1번은 텍스트 인식이 필요하지 않은 질문이라 제일 낮은 등수이다. …", "ranking": [2, 3, 1, …, n]}}
+
+<QA 후보>
+{qa_candidates}
+"""
 
 def format_qa_generation_prompt(
     system_type: str, image_caption: str, num_questions: int

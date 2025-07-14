@@ -140,6 +140,21 @@ Alignment: 질문의 내용과 의도가 이미지의 정보 전달 의도에 �
 {qa_candidates}
 """
 
+SYSTEM_EVAL_TEMPLATE_SIMPLE = """이미지와 관련된 질의응답 <QA 후보>를 평가하고, 순위를 결정해 주세요.
+
+- 아래 <응답 형식>에 맞춰 reasoning에 판단 근거를 작성하고, ranking에 순위를 답하세요.
+- 각 QA를 품질 순으로 평가하여 1위부터 순서대로 번호를 매기세요.
+
+<응답 형식>
+{{"reasoning": "순위 판단 근거", "ranking": [1위 질문 번호, 2위 질문 번호, 3위 질문 번호, ..., n위 질문 번호]}}
+
+<응답 예시>
+{{"reasoning": "1번은 텍스트 인식이 필요하지 않은 질문이라 제일 낮은 등수이다. ...", "ranking": [2, 3, 1, ..., n]}}
+
+<QA 후보>
+{qa_candidates}
+"""
+
 SYSTEM2_EVAL_TEMPLATE = """이미지와 관련된 질의응답 <QA 후보>를 평가하고, 순위를 결정해 주세요.
 
 - 아래 <응답 형식>에 맞춰 reasoning에 판단 근거를 작성하고, ranking에 순위를 답하세요.
@@ -273,6 +288,31 @@ def format_qa_evaluation_prompt(system_type: str, qa_candidates: list) -> str:
     template = (
         SYSTEM1_EVAL_TEMPLATE if system_type == "system1" else SYSTEM2_EVAL_TEMPLATE
     )
+
+    # Convert QA candidates list to string
+    qa_list_str = json.dumps(qa_candidates, ensure_ascii=False, indent=2)
+
+    # Split lines for adding numbers
+    lines = qa_list_str.split("\n")
+
+    # Add numbers to the start of each item in the "qa_list" array
+    current_qa = 0
+    numbered_lines = []
+    for line in lines:
+        if '"question"' in line:  # Start of a new QA item
+            current_qa += 1
+            numbered_lines.append(f"\nQA {current_qa}:")
+        numbered_lines.append(line)
+
+    qa_list_str = "\n".join(numbered_lines)
+
+    print(qa_list_str)
+
+    return template.format(qa_candidates=qa_list_str, language=LANGUAGE)
+
+def format_qa_evaluation_prompt_simple(system_type: str, qa_candidates: list) -> str:
+    """Format QA evaluation prompt"""
+    template = SYSTEM_EVAL_TEMPLATE_SIMPLE
 
     # Convert QA candidates list to string
     qa_list_str = json.dumps(qa_candidates, ensure_ascii=False, indent=2)

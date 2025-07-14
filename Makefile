@@ -1,9 +1,9 @@
 # Python command settings
-PYTHON := python
+PYTHON := python3
 VENV := .venv
 
 # Default values
-GPU ?= 0
+GPU ?= 1
 INPUT_DIR ?= ./data/images
 OUTPUT_DIR ?= ./results
 SAVE_BATCH ?= 60
@@ -21,7 +21,7 @@ endif
 # Default help
 help:
 	@echo "Available commands:"
-	@echo "  make setup              : Create virtual environment and install dependencies"
+	@echo "  make setup             : Create virtual environment and install dependencies"
 	@echo "  make filter            : Run image filtering"
 	@echo "  make generate          : Generate QA data"
 	@echo "  make evaluate          : Run evaluation tool"

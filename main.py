@@ -21,6 +21,7 @@ from src.prompts import (
     CAPTION_PROMPT,
     HARD_NEGATIVE_OPTIONS_PROMPT,
     format_qa_evaluation_prompt,
+    format_qa_evaluation_prompt_simple,
     format_qa_generation_prompt,
     format_type_domain_generation_prompt,
 )
@@ -159,6 +160,50 @@ class TVQAGenerator:
 
         self.logger.info(f'evaluation 1: {evaluations["system1"]}')
         self.logger.info(f'evaluation 2: {evaluations["system2"]}')
+
+        return {
+            "system1": aggregate_votes(
+                evaluations["system1"], QA_EVALUATION["system1"]["num_to_select"]
+            ),
+            "system2": aggregate_votes(
+                evaluations["system2"], QA_EVALUATION["system1"]["num_to_select"]
+            ),
+        }
+    
+    async def multi_models_evaluation_simple(
+        self, qa_candidates: Dict, image_path: str
+    ) -> Dict[str, Optional[int]]:
+        """Perform evaluation using multiple models"""
+        evaluations = {"system1": {}, "system2": {}}
+
+        # Perform evaluation for each system
+        for system_type in ["system1", "system2"]:
+            prompt = format_qa_evaluation_prompt_simple(
+                system_type,
+                (
+                    qa_candidates["system1"]["qa_list"]
+                    if system_type == "system1"
+                    else qa_candidates["system2"]["qa_list"]
+                ),
+            )
+            eval_tasks = [
+                get_model_response(model_name, prompt, image_path)
+                for model_name in QA_EVALUATION[system_type]["models"]
+            ]
+            responses = await asyncio.gather(*eval_tasks)
+
+            self.logger.info(f"multi_models_evaluation_simple: {responses}")
+
+            for model_name, response in zip(
+                QA_EVALUATION[system_type]["models"], responses
+            ):
+                if response:
+                    evaluations[system_type][model_name] = parse_ranking_response(
+                        response
+                    )
+
+        self.logger.info(f'simple evaluation system1: {evaluations["system1"]}')
+        self.logger.info(f'simple evaluation system2: {evaluations["system2"]}')
 
         return {
             "system1": aggregate_votes(
@@ -350,6 +395,57 @@ class TVQAGenerator:
                     self.logger.info(
                         f"[Image {processed_count + 1}] QA Evaluation Result:\n{evaluated_qa}"
                     )
+
+                    # Log selected QA from detailed evaluation
+                    self.logger.info("======SELECTED_QA_DETAILED========")
+                    for system_type in ["system1", "system2"]:
+                        if evaluated_qa[system_type] is not None:
+                            # Handle both int and list cases
+                            if isinstance(evaluated_qa[system_type], list):
+                                selected_idx = evaluated_qa[system_type][0] - 1
+                                selected_qa_num = evaluated_qa[system_type][0]
+                            else:
+                                selected_idx = evaluated_qa[system_type] - 1
+                                selected_qa_num = evaluated_qa[system_type]
+
+                            selected_qa = qa_candidates[system_type]["qa_list"][selected_idx]
+                            self.logger.info(f"System: {system_type}")
+                            self.logger.info(f"QA num: {selected_qa_num}")
+                            self.logger.info(f"Question: {selected_qa['question']}")
+                            self.logger.info(f"Answer: {selected_qa['answer']}")
+                            if 'reasoning' in selected_qa:
+                                self.logger.info(f"Reasoning: {selected_qa['reasoning']}")
+                            self.logger.info("----------------------------")
+                    self.logger.info("================================")
+
+                    evaluated_qa_simple = await self.multi_models_evaluation_simple(
+                        qa_candidates, image_path
+                    )
+                    self.logger.info(
+                        f"[Image {processed_count + 1}] Simple QA Evaluation Result:\n{evaluated_qa_simple}"
+                    )
+
+                    # Log selected QA from simple evaluation
+                    self.logger.info("======SELECTED_QA_SIMPLE========")
+                    for system_type in ["system1", "system2"]:
+                        if evaluated_qa_simple[system_type] is not None:
+                            # Handle both int and list cases
+                            if isinstance(evaluated_qa_simple[system_type], list):
+                                selected_idx = evaluated_qa_simple[system_type][0] - 1
+                                selected_qa_num = evaluated_qa_simple[system_type][0]
+                            else:
+                                selected_idx = evaluated_qa_simple[system_type] - 1
+                                selected_qa_num = evaluated_qa_simple[system_type]
+                            
+                            selected_qa = qa_candidates[system_type]["qa_list"][selected_idx]
+                            self.logger.info(f"System: {system_type}")
+                            self.logger.info(f"QA num: {selected_qa_num}")
+                            self.logger.info(f"Question: {selected_qa['question']}")
+                            self.logger.info(f"Answer: {selected_qa['answer']}")
+                            if 'reasoning' in selected_qa:
+                                self.logger.info(f"Reasoning: {selected_qa['reasoning']}")
+                            self.logger.info("----------------------------")
+                    self.logger.info("================================")
 
                     qa_candidates = await self.generate_options_and_type(
                         qa_candidates, evaluated_qa, image_caption, image_path

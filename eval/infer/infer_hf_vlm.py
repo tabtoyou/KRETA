@@ -97,35 +97,38 @@ class HFVLMInference:
         self.dtype = dtype or (torch.bfloat16 if self.device == "cuda" else torch.float32)
 
         self.strategy = select_strategy(model_id)
+        use_device_map = self.device == "cuda"
 
         if self.strategy == "kanana":
             self.model = AutoModelForVision2Seq.from_pretrained(
                 model_id,
                 trust_remote_code=True,
                 torch_dtype=self.dtype,
-                device_map="auto" if self.device == "cuda" else None,
+                device_map="auto" if use_device_map else None,
             )
         elif self.strategy == "varco2_llavaov":
             self.model = LlavaOnevisionForConditionalGeneration.from_pretrained(
                 model_id,
-                torch_dtype=torch.float16 if self.device == "cuda" else self.dtype,
+                torch_dtype=torch.float16 if use_device_map else self.dtype,
                 attn_implementation="sdpa",
-                device_map="auto" if self.device == "cuda" else None,
+                device_map="auto" if use_device_map else None,
             )
         elif self.strategy == "ax_vl_light":
             # A.X 4.0 VL Light uses AutoModelForCausalLM with processor(conversations=...)
-            dtype = torch.bfloat16 if self.device == "cuda" else self.dtype
+            dtype = torch.bfloat16 if use_device_map else self.dtype
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_id,
                 trust_remote_code=True,
                 torch_dtype=dtype,
-            ).to(self.device)
+                device_map="auto" if use_device_map else None,
+            )
         else:
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_id,
                 trust_remote_code=True,
                 torch_dtype=self.dtype,
-            ).to(self.device)
+                device_map="auto" if use_device_map else None,
+            )
 
         self.processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
         try:
@@ -210,7 +213,11 @@ class HFVLMInference:
                 padding=True,
                 return_tensors="pt",
             )
-            inputs = self._to_model_device(inputs)
+            # Move tensors explicitly to the model's primary device
+            target_device = self._get_primary_device()
+            for key, value in inputs.items():
+                if isinstance(value, torch.Tensor):
+                    inputs[key] = value.to(target_device)
 
             generate_kwargs = {
                 "max_new_tokens": max_new_tokens,
@@ -293,63 +300,39 @@ class HFVLMInference:
             return tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
 
         if self.strategy == "hyperclovax":
-            # HyperCLOVAX uses chat+preprocess path
+            # Follow the latest HyperCLOVAX VLM API: single call to processor.apply_chat_template
             vlm_chat = [
-                {"role": "system", "content": {"type": "text", "text": "You are a helpful assistant."}},
-                {"role": "user", "content": {"type": "text", "text": text}},
-                {"role": "user", "content": {"type": "image", "filename": "image.jpg", "image": image_b64}},
+                {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant."}]},
+                {"role": "user", "content": [{"type": "text", "text": text}]},
+                {"role": "user", "content": [{"type": "image", "image": image_b64}]},
             ]
 
-            if hasattr(self.processor, "load_images_videos"):
-                new_chat, all_images, is_video_list = self.processor.load_images_videos(vlm_chat)
+            model_inputs = self.processor.apply_chat_template(
+                vlm_chat,
+                tokenize=True,
+                return_dict=True,
+                return_tensors="pt",
+                add_generation_prompt=True,
+            )
 
-                # Ensure processor receives lists, even for single image/video
-                if not isinstance(all_images, (list, tuple)):
-                    all_images = [all_images]
-                if not isinstance(is_video_list, (list, tuple)):
-                    is_video_list = [is_video_list]
+            # Move all tensors to the model's primary device
+            target_device = self._get_primary_device()
+            for key, value in model_inputs.items():
+                if isinstance(value, torch.Tensor):
+                    model_inputs[key] = value.to(target_device)
 
-                preprocessed = self.processor(images=all_images, is_video_list=is_video_list)
+            output_ids = self.model.generate(
+                **model_inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
+            )
 
-                # Prefer processor.apply_chat_template (newer API)
-                try:
-                    model_inputs = self.processor.apply_chat_template(
-                        new_chat,
-                        tokenize=True,
-                        return_dict=True,
-                        return_tensors="pt",
-                        add_generation_prompt=True,
-                    )
-                    model_inputs = self._to_model_device(model_inputs)
-                    preprocessed = self._to_model_device(preprocessed)
-                    output_ids = self.model.generate(
-                        **model_inputs,
-                        max_new_tokens=max_new_tokens,
-                        do_sample=False,
-                        **preprocessed,
-                    )
-                    return self.processor.batch_decode(output_ids, skip_special_tokens=True)[0]
-                except Exception:
-                    # Fallback to tokenizer.apply_chat_template (older API)
-                    if self.tokenizer is None:
-                        raise RuntimeError("Tokenizer is required when processor.apply_chat_template is unavailable.")
-                    input_ids_cpu = self.tokenizer.apply_chat_template(
-                        new_chat,
-                        return_tensors="pt",
-                        tokenize=True,
-                        add_generation_prompt=True,
-                    )
-                    input_ids = self._to_model_device(input_ids_cpu)
-                    preprocessed = self._to_model_device(preprocessed)
-                    output_ids = self.model.generate(
-                        input_ids=input_ids,
-                        max_new_tokens=max_new_tokens,
-                        do_sample=False,
-                        **preprocessed,
-                    )
-                    return self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
+            # Trim the prompt tokens
+            input_ids_len = model_inputs["input_ids"].shape[1]
+            trimmed_ids = output_ids[:, input_ids_len:]
 
-            # Fallback to default if processor API not found
+            tokenizer_to_use = self.tokenizer or self.processor
+            return tokenizer_to_use.batch_decode(trimmed_ids, skip_special_tokens=True)[0]
 
         # Default LLaVA-like path: ensure images is a list
         image = b64_to_pil_image(image_b64)

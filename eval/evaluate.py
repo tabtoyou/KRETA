@@ -9,10 +9,10 @@ import numpy as np
 
 def kotextvqa_process_results(results):
     pred = results["response"]
-    if isinstance(pred, dict):
+    if pred is None or isinstance(pred, dict):
         pred = ""
 
-    options = [results["A"], results["B"], results["C"], results["D"]]
+    options = [results.get("A"), results.get("B"), results.get("C"), results.get("D")]
     index2ans, all_choices = get_multi_choice_info(options)
     parsed_pred = parse_multi_choice_response(pred, all_choices, index2ans)
 
@@ -22,7 +22,9 @@ def kotextvqa_process_results(results):
     else:
         if_right = False
 
+    # unify key name for downstream usage
     results["pred_indexs"] = parsed_pred
+    results["parsed_pred"] = parsed_pred
     results["if_right"] = if_right
 
     return results
@@ -179,6 +181,9 @@ def parse_multi_choice_response(response, all_choices, index2ans):
     Parse the prediction from the generated response.
     Return the predicted index, e.g., A, B, C, D.
     """
+    if not isinstance(response, str):
+        response = ""
+
     last_answer_pos = response.rfind("Answer:")
     if last_answer_pos != -1:
         # Extract the string after "Answer:"
@@ -220,7 +225,7 @@ def parse_multi_choice_response(response, all_choices, index2ans):
     # if all above doesn't get candidates, check if the content is larger than 5 tokens and try to parse the example
     if len(candidates) == 0 and len(response.split()) > 5:
         for index, ans in index2ans.items():
-            if ans.lower() in response.lower():
+            if isinstance(ans, str) and ans and ans.lower() in response.lower():
                 candidates.append(index)
                 index_ans = False  # it's content ans.
 
@@ -393,7 +398,8 @@ def get_multi_choice_info(options):
     all_choices = []
     index2ans = {}
     for i, option in enumerate(options):
-        index2ans[chr(ord(start_chr) + i)] = option
+        safe_option = "" if option is None else str(option)
+        index2ans[chr(ord(start_chr) + i)] = safe_option
         all_choices.append(chr(ord(start_chr) + i))
 
     return index2ans, all_choices
@@ -607,7 +613,7 @@ def check_files(input_dir):
                 for item in processed_results:
                     outfile.write(json.dumps(item) + "\n")
 
-    results_path = os.path.join(input_dir, "evaluation_results.json")
+    results_path = os.path.join(input_dir, "KANANA-1.5-V-3B-INSTRUCT_default.jsonl")
     with open(results_path, "w", encoding="utf-8") as outfile:
         json.dump(all_results, outfile, indent=2, ensure_ascii=False)
 

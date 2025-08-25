@@ -19,12 +19,12 @@ from transformers import (
     LlavaOnevisionForConditionalGeneration,
 )
 from tqdm import tqdm
-
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # Usage:
 #   python eval/infer/infer_hf_vlm.py <MODEL_ID> <SETTING>
 # Examples:
-#   python eval/infer/infer_hf_vlm.py naver-hyperclovax/HyperCLOVAX-SEED-Vision-Instruct-3B default
 #   python eval/infer/infer_hf_vlm.py kakaocorp/kanana-1.5-v-3b-instruct default
 #   python eval/infer/infer_hf_vlm.py NCSOFT/VARCO-VISION-14B default
 #   python eval/infer/infer_hf_vlm.py skt/A.X-4.0-VL-Light default
@@ -36,9 +36,9 @@ if len(sys.argv) == 3:
 else:
     print(
         "Usage: python eval/infer/infer_hf_vlm.py <MODEL_ID> <SETTING>\n",
-        "Example: python eval/infer/infer_hf_vlm.py naver-hyperclovax/HyperCLOVAX-SEED-Vision-Instruct-3B default",
+        "Example: python eval/infer/infer_hf_vlm.py kakaocorp/kanana-1.5-v-3b-instruct default",
     )
-    MODEL_ID = "naver-hyperclovax/HyperCLOVAX-SEED-Vision-Instruct-3B"
+    MODEL_ID = "kakaocorp/kanana-1.5-v-3b-instruct default"
     SETTING = "default"
 
 
@@ -78,8 +78,6 @@ def b64_to_pil_image(b64_str: str) -> Image.Image:
 
 def select_strategy(model_id: str) -> str:
     lower_id = model_id.lower()
-    if "hyperclovax" in lower_id:
-        return "hyperclovax"
     if "kanana" in lower_id:
         return "kanana"
     if "varco-vision-2.0" in lower_id or ("varco-vision" in lower_id and "2.0" in lower_id):
@@ -299,41 +297,6 @@ class HFVLMInference:
             tokenizer = getattr(self.processor, "tokenizer", self.tokenizer)
             return tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
 
-        if self.strategy == "hyperclovax":
-            # Follow the latest HyperCLOVAX VLM API: single call to processor.apply_chat_template
-            vlm_chat = [
-                {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant."}]},
-                {"role": "user", "content": [{"type": "text", "text": text}]},
-                {"role": "user", "content": [{"type": "image", "image": image_b64}]},
-            ]
-
-            model_inputs = self.processor.apply_chat_template(
-                vlm_chat,
-                tokenize=True,
-                return_dict=True,
-                return_tensors="pt",
-                add_generation_prompt=True,
-            )
-
-            # Move all tensors to the model's primary device
-            target_device = self._get_primary_device()
-            for key, value in model_inputs.items():
-                if isinstance(value, torch.Tensor):
-                    model_inputs[key] = value.to(target_device)
-
-            output_ids = self.model.generate(
-                **model_inputs,
-                max_new_tokens=max_new_tokens,
-                do_sample=False,
-            )
-
-            # Trim the prompt tokens
-            input_ids_len = model_inputs["input_ids"].shape[1]
-            trimmed_ids = output_ids[:, input_ids_len:]
-
-            tokenizer_to_use = self.tokenizer or self.processor
-            return tokenizer_to_use.batch_decode(trimmed_ids, skip_special_tokens=True)[0]
-
         # Default LLaVA-like path: ensure images is a list
         image = b64_to_pil_image(image_b64)
         inputs = self.processor(images=[image], text=text, return_tensors="pt")
@@ -350,7 +313,7 @@ class HFVLMInference:
 
 def parse_model_name_from_id(model_id: str) -> str:
     # Convert HF repo id to a readable short model name for filename
-    # e.g., naver-hyperclovax/HyperCLOVAX-SEED-Vision-Instruct-3B -> HYPERCLOVAX-SEED-VISION-INSTRUCT-3B
+    # e.g., kakaocorp/kanana-1.5-v-3b-instruct -> KANANA-1.5-V-3B-INSTRUCT
     name = model_id.split("/")[-1]
     # Strip revision-like suffix if any (not common in HF ids), and uppercase
     name = re.split(r"-\d{4}-\d{2}-\d{2}", name)[0].upper()

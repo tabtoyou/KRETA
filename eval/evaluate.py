@@ -613,7 +613,7 @@ def check_files(input_dir):
                 for item in processed_results:
                     outfile.write(json.dumps(item) + "\n")
 
-    results_path = os.path.join(input_dir, "KANANA-1.5-V-3B-INSTRUCT_default.jsonl")
+    results_path = os.path.join(input_dir, "results.json")
     with open(results_path, "w", encoding="utf-8") as outfile:
         json.dump(all_results, outfile, indent=2, ensure_ascii=False)
 

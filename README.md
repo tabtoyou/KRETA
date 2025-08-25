@@ -54,7 +54,6 @@ Example:
 
 ```bash
 python infer/infer_gpt.py gpt-4o-mini default
-python infer/infer_hf_vlm.py naver-hyperclovax/HyperCLOVAX-SEED-Vision-Instruct-3B default
 python infer/infer_hf_vlm.py kakaocorp/kanana-1.5-v-3b-instruct default
 python infer/infer_hf_vlm.py NCSOFT/VARCO-VISION-2.0-14B default
 python infer/infer_hf_vlm.py skt/A.X-4.0-VL-Light default

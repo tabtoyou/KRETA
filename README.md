@@ -22,6 +22,19 @@ Understanding and reasoning over text within visual contexts poses a significant
 
 ## LeaderBoard
 
+| Rank | Model               | Release   | Type        | Overall | System1 | System2 |
+|------|---------------------|-----------|-------------|---------|---------|---------|
+| 1    | Gemini-2.0-flash    | 25.02.05  | Closed      | **85.4** | **98.0** | 69.8 |
+| 2    | GPT-4o              | 24.11.20  | Closed      | 84.6    | 95.9    | **70.5** |
+| 3    | Claude-3.5-Sonnet   | 24.10.22  | Closed      | 80.5    | 93.4    | 64.5 |
+| 4    | [A.X-4.0-VL-LIGHT (7B)](https://huggingface.co/skt/A.X-4.0-VL-Light)   | 25.07.31  | Open-Source | 78.0    | 95.3    | 56.5 |
+| 5    | [VARCO-VISION-2.0 (14B)](https://huggingface.co/NCSOFT/VARCO-VISION-2.0-14B)    | 25.07.16  | Open-Source | 75.4    | 93.5    | 53.1 |
+| 6    | [KANANA-1.5-V (3B)](https://huggingface.co/kakaocorp/kanana-1.5-v-3b-instruct)   | 25.07.24  | Open-Source | 75.0    | 94.0    | 51.4 |
+| 7    | GPT-4o-mini         | 24.07.18  | Closed      | 73.3    | 88.7    | 54.1 |
+
+
+<details>
+<summary>Full Leaderboard (click to expand)</summary>
 <table style="width:90%;">
 <tr>
 <th>Models</th>
@@ -508,7 +521,7 @@ Understanding and reasoning over text within visual contexts poses a significant
 <td>25.0</td>
 </tr>
 </table>
-
+</details>
 
 ## Settings
 ```bash
@@ -585,7 +598,7 @@ Once executed, the script will:
 - This work was supported by the Korea Institute for Advancement of Technology (KIAT) grant funded by the Ministry of Education, Korea Government, by Seoul National University (Semiconductor-Specialized University), and by Waddle Corporation, KRAFTON, and AttentionX.
 
 
-If you find KRETA useful for your your research and applications, please cite using this BibTeX:
+If you find KRETA useful for your research and applications, please cite using this BibTeX:
 ```bibtex
 @misc{hwang2025kretabenchmarkkoreanreading,
       title={KRETA: A Benchmark for Korean Reading and Reasoning in Text-Rich VQA Attuned to Diverse Visual Contexts}, 

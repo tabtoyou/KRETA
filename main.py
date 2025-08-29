@@ -407,7 +407,7 @@ class TVQAGenerator:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TVQA Generator")
     parser.add_argument(
-        "-d", "--input_directory", type=str, required=False, default="./data/images"
+        "-d", "--input_directory", type=str, required=False, default="./data/valid_images"
     )
     parser.add_argument(
         "-r", "--output_directory", type=str, required=False, default="./results"

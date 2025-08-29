@@ -4,7 +4,8 @@ VENV := .venv
 
 # Default values
 GPU ?= 0
-INPUT_DIR ?= ./data/images
+FILTER_INPUT_DIR ?= ./data/images
+GENERATE_INPUT_DIR ?= ./data/valid_images
 OUTPUT_DIR ?= ./results
 SAVE_BATCH ?= 60
 
@@ -40,7 +41,7 @@ setup:
 	@$(ACTIVATE) $(PYTHON_PATH) -m pip install -r requirements.txt
 	@if [ "$(GPU)" = "1" ]; then \
 		echo "Installing with GPU support..."; \
-		$(ACTIVATE) $(PYTHON_PATH) -m pip install paddlepaddle-gpu==3.0.0b1 -i https://www.paddlepaddle.org.cn/packages/stable/cu123/; \
+		$(ACTIVATE) $(PYTHON_PATH) -m pip install paddlepaddle-gpu==3.1.0 -i https://www.paddlepaddle.org.cn/packages/stable/cu126/; \
 	else \
 		echo "Installing CPU version..."; \
 		$(ACTIVATE) $(PYTHON_PATH) -m pip install paddlepaddle; \
@@ -50,12 +51,12 @@ setup:
 # Image filtering
 filter:
 	@echo "Running image filtering..."
-	@$(ACTIVATE) $(PYTHON_PATH) filter.py --input_directory $(INPUT_DIR)
+	@$(ACTIVATE) $(PYTHON_PATH) filter.py --input_directory $(FILTER_INPUT_DIR)
 
 # QA data generation
 generate:
 	@echo "Generating QA data..."
-	@$(ACTIVATE) $(PYTHON_PATH) main.py --input_directory $(INPUT_DIR) --output_directory $(OUTPUT_DIR) --save_batch $(SAVE_BATCH)
+	@$(ACTIVATE) $(PYTHON_PATH) main.py --input_directory $(GENERATE_INPUT_DIR) --output_directory $(OUTPUT_DIR) --save_batch $(SAVE_BATCH)
 
 # Run streamlit editor
 editor:

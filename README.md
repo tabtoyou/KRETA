@@ -6,15 +6,30 @@ submitted to EMNLP 2025.
 
 ## Settings
 ```bash
-make setup # set environment (options: GPU)
-make help  # print manual
+make setup # default: GPU=0 (installs paddlepaddle CPU version); for GPU OCR, run: make setup GPU=1
+make help # print manual
+```
+
+## Environment (.env)
+
+Create a `.env` file at the project root.
+
+```bash
+# Set only what you need
+OPENAI_API_KEY=<your API key>
+GOOGLE_API_KEY=<your API key>
+CLAUDE_API_KEY=<your API key>
 ```
 
 ## Text-Rich VQA Generation
+
+Before running, prepare input images:
+- Create `data/images` and place your images there (default `INPUT_DIR`), or set `INPUT_DIR` to your custom folder.
+
 ```bash
 make filter   # 1) filter out low-quality images with OCR Model
 make generate # 2) automatically generate VQA using a 4-stage pipeline (options: INPUT_DIR)
-make editor   # 3) refine VQA with streamlit-based editor (options: INPUT_DIR, OUTPUT_DIR, SAVE_BATCH)```
+make editor   # 3) refine VQA with streamlit-based editor (options: INPUT_DIR, OUTPUT_DIR, SAVE_BATCH)
 ```
 
 ## Evaluation
@@ -39,6 +54,9 @@ Example:
 
 ```bash
 python infer/infer_gpt.py gpt-4o-mini default
+python infer/infer_hf_vlm.py kakaocorp/kanana-1.5-v-3b-instruct default
+python infer/infer_hf_vlm.py NCSOFT/VARCO-VISION-2.0-14B default
+python infer/infer_hf_vlm.py skt/A.X-4.0-VL-Light default
 ```
 
 ### 2. Evaluation

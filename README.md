@@ -582,6 +582,7 @@ Once executed, the script will:
 ## Acknowledgement
 
 - [MMMU-Pro](https://github.com/MMMU-Benchmark/MMMU): we would like to thank the authors for providing the codebase that our work builds upon.
+- This work was supported by the Korea Institute for Advancement of Technology (KIAT) grant funded by the Ministry of Education, Korea Government, by Seoul National University (Semiconductor-Specialized University), and by Waddle Corporation, KRAFTON, and AttentionX.
 
 
 If you find KRETA useful for your your research and applications, please cite using this BibTeX:

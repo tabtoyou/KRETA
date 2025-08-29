@@ -1,8 +1,8 @@
 # KRETA Benchmark
  
-[🤗 KRETA](https://huggingface.co/datasets/tabtoyou/KRETA) | [📖 Paper](https://arxiv.org/abs/2508.19944)
+[🤗 KRETA](https://huggingface.co/datasets/tabtoyou/KRETA) | [📖 Paper](https://arxiv.org/abs/2508.19944) | [🏆 Leaderboard](https://github.com/tabtoyou/KRETA/tree/main?tab=readme-ov-file#leaderboard)
 
-**KRETA: A Benchmark for Korean Reading and Reasoning in Text-Rich VQA Attuned to Diverse Visual Contexts** (EMNLP 2025 Main) <br>
+**KRETA: A Benchmark for Korean Reading and Reasoning in Text-Rich VQA Attuned to Diverse Visual Contexts** (EMNLP 2025 Main Conference) <br>
 [Taebaek Hwang*](https://www.linkedin.com/in/taebaek-hwang-a66685170/), [Minseo Kim*](https://www.linkedin.com/in/minseo-kim-939293323/), [Gisang Lee](https://www.linkedin.com/in/gisanglee/), 
 [Seonuk Kim](https://www.linkedin.com/in/seonuk-kim/), [Hyunjun Eun](https://www.linkedin.com/in/hyunjun-eun-239381196/)
 

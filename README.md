@@ -600,13 +600,11 @@ Once executed, the script will:
 
 If you find KRETA useful for your research and applications, please cite using this BibTeX:
 ```bibtex
-@misc{hwang2025kretabenchmarkkoreanreading,
-      title={KRETA: A Benchmark for Korean Reading and Reasoning in Text-Rich VQA Attuned to Diverse Visual Contexts}, 
-      author={Taebaek Hwang and Minseo Kim and Gisang Lee and Seonuk Kim and Hyunjun Eun},
-      year={2025},
-      eprint={2508.19944},
-      archivePrefix={arXiv},
-      url={https://arxiv.org/abs/2508.19944}, 
+@article{hwang2025kreta,
+  title={KRETA: A Benchmark for Korean Reading and Reasoning in Text-Rich VQA Attuned to Diverse Visual Contexts},
+  author={Hwang, Taebaek and Kim, Minseo and Lee, Gisang and Kim, Seonuk and Eun, Hyunjun},
+  journal={arXiv preprint arXiv:2508.19944},
+  year={2025}
 }
 ```
 

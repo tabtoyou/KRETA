@@ -29,7 +29,7 @@ Understanding and reasoning over text within visual contexts poses a significant
 | 3    | Claude-3.5-Sonnet   | 24.10.22  | Closed      | 80.5    | 93.4    | 64.5 |
 | 4    | [A.X-4.0-VL-LIGHT (7B)](https://huggingface.co/skt/A.X-4.0-VL-Light)   | 25.07.31  | Open-Source | 78.0    | 95.3    | 56.5 |
 | 5    | [VARCO-VISION-2.0 (14B)](https://huggingface.co/NCSOFT/VARCO-VISION-2.0-14B)    | 25.07.16  | Open-Source | 75.4    | 93.5    | 53.1 |
-| 6    | [KANANA-1.5-V (3B)](https://huggingface.co/kakaocorp/kanana-1.5-v-3b-instruct)   | 25.07.24  | Open-Source | 75.0    | 94.0    | 51.4 |
+| 6    | [Kanana-1.5-V (3B)](https://huggingface.co/kakaocorp/kanana-1.5-v-3b-instruct)   | 25.07.24  | Open-Source | 75.0    | 94.0    | 51.4 |
 | 7    | GPT-4o-mini         | 24.07.18  | Closed      | 73.3    | 88.7    | 54.1 |
 
 
